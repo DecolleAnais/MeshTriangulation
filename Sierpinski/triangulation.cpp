@@ -16,14 +16,15 @@ Triangulation::Triangulation()
 
     // creation sommet fictif infini
     _vertices.resize(1);
-    _vertices[0] = Point3D();
+    _vertices[0] = Point3D(0, 0, -1);
 
     // chargement de la triangulation a partir d'un fichier
 
     //loadTriangulation("/home/ad/Documents/M2/GAM/queen.off");
-    loadTriangulation("/home/ad/Documents/M2/GAM/carre.off");
+    //loadTriangulation("/home/ad/Documents/M2/GAM/carre.off");
+    //loadTriangulation("/home/ad/Documents/M2/GAM/cube.off");
     //loadTriangulation("/home/ad/Documents/M2/GAM/carre.pts");
-    //loadTriangulation("/home/ad/Documents/M2/GAM/test.pts");
+    loadTriangulation("/home/ad/Documents/M2/GAM/test.pts");
 
 }
 
@@ -32,7 +33,7 @@ Triangulation::Triangulation (const char* file) {
     _nb_faces = 0;
     // creation sommet fictif infini
     _vertices.resize(1);
-    _vertices[0] = Point3D();
+    _vertices[0] = Point3D(0, 0, -1);
     // chargement de la triangulation a partir d'un fichier
     loadTriangulation(file);
 }
@@ -179,6 +180,7 @@ void Triangulation::loadOFF(std::ifstream & ifs) {
         id_v2 += 1;
 
         _faces[i] = Face(id_v0, id_v1, id_v2);
+        //createFace(id_v0, id_v1, id_v2);
 
         // association de la face aux sommets s'ils ne sont pas deja lies a une face
         for(unsigned int v_id : _faces[i].vertices()) {
@@ -209,7 +211,7 @@ void Triangulation::loadOFF(std::ifstream & ifs) {
             // pour chaque face en bordure, on cree une face avec le sommet fictif
             unsigned int a = _faces[i].v( (id+1)%3 );
             unsigned int b = _faces[i].v( (id+2)%3 );
-            // creation de la face fictive (v0 = a ou b, v1 = sommet fictif, v2 = a ou b, le choix a ou b est selon l'ordre trigo)
+            // creation de la face fictive (v0 = sommet fictif, v1 = b, v2 = a, car l'arete ab est inversee dans la face voisine
             // false pour ne pas incrementer _nb_faces qui represente le nb de faces reelles
             createFace(a, 0, b, false);
 
@@ -231,8 +233,7 @@ void Triangulation::loadOFF(std::ifstream & ifs) {
 void Triangulation::loadPTS(std::ifstream & ifs) {
     // nb sommets
     ifs >> _nb_vertices;
-    _vertices.resize(_nb_vertices);
-
+    _vertices.resize(_nb_vertices + 1); // + 1 pour le sommet fictif
     double v_x, v_y, v_z;
 
     // lecture coords sommets
@@ -244,16 +245,36 @@ void Triangulation::loadPTS(std::ifstream & ifs) {
 
         // POINT INVISIBLE POUR LES BORDS
 
-        if(i == 2) {
+        if(i == 3) {
             // si on est au troisieme sommet, on cree le premier triangle
             // en testant le sens trigo selon l'ordre des sommets
-            createFace(0, 1, 2);
+            createFace(1, 2, 3);
             // association de la face aux sommets
-            _vertices[0].faceId = 0;
             _vertices[1].faceId = 0;
             _vertices[2].faceId = 0;
+            _vertices[3].faceId = 0;
+            // creation faces virtuelles
+            _faces.push_back( Face(_faces[0].v(0), 0, _faces[0].v(1)) );
+            _faces.push_back( Face(_faces[0].v(1), 0, _faces[0].v(2)) );
+            _faces.push_back( Face(_faces[0].v(2), 0, _faces[0].v(0)) );
+            // liaison des voisins
+            _faces[0].f(0) = 2;
+            _faces[0].f(1) = 3;
+            _faces[0].f(2) = 1;
 
-        }else if(i > 2) {
+            _faces[1].f(0) = 2;
+            _faces[1].f(1) = 0;
+            _faces[1].f(2) = 3;
+
+            _faces[2].f(0) = 3;
+            _faces[2].f(1) = 0;
+            _faces[2].f(2) = 1;
+
+            _faces[3].f(0) = 1;
+            _faces[3].f(1) = 0;
+            _faces[3].f(2) = 2;
+
+        }else if(i > 3) {
             // si on a deja cree notre premier triangle
             // on ajoute le nouveau sommet par rapport aux triangles existants
 
@@ -291,7 +312,7 @@ bool Triangulation::isSensTrigo(unsigned int a, unsigned int b, unsigned int c) 
     Vec3 ac(_vertices[a], _vertices[c]);
     // si la composante z du produit vectoriel ab, ac est negative
     // alors le triangle est dans le sens trigo
-    if(ab.cross(ac).z < 0) {
+    if(ab.cross(ac).z > 0) {
         return true;
     }else {
         return false;
@@ -320,7 +341,7 @@ void Triangulation::subdivideFace(unsigned int idFace, unsigned int o) {
 
     // association des faces aux sommets
     _vertices[o].faceId = idFace;
-    _vertices[_faces[idFace].v(0)].faceId = _nb_faces;
+    _vertices[_faces[idFace].v(0)].faceId = _faces.size();
 
     // modification du triangle original abc
     // sauvegarde du sommet a de la face
@@ -334,21 +355,29 @@ void Triangulation::subdivideFace(unsigned int idFace, unsigned int o) {
     // triangle aoc
     createFace(a, o, _faces[idFace].v(2));
 
+
+
     // maj des voisins
 
     // triangle aoc
-    _faces[_nb_faces - 1].f(0)  = idFace;
-    _faces[_nb_faces - 1].f(1)  = _faces[idFace].f(1);
-    _faces[_nb_faces - 1].f(2)  = _nb_faces - 2;
+    _faces[_faces.size() - 1].f(0)  = idFace;
+    _faces[_faces.size() - 1].f(1)  = _faces[idFace].f(1);
+    _faces[_faces.size() - 1].f(2)  = _faces.size() - 2;
 
     // triangle abo
-    _faces[_nb_faces - 2].f(0)  = idFace;
-    _faces[_nb_faces - 2].f(1)  = _nb_faces - 1;
-    _faces[_nb_faces - 2].f(2)  = _faces[idFace].f(2);
+    _faces[_faces.size() - 2].f(0)  = idFace;
+    _faces[_faces.size() - 2].f(1)  = _faces.size() - 1;
+    _faces[_faces.size() - 2].f(2)  = _faces[idFace].f(2);
 
-    // triangle obc (ex triangle original)
-    _faces[idFace].f(1) = _nb_faces - 1;
-    _faces[idFace].f(2) = _nb_faces - 2;
+    // maj voisins du triangle original abc
+    unsigned int id = _faces[idFace].f(1);
+    _faces[id].f(1) = _faces.size() - 1;
+    id = _faces[idFace].f(2);
+    _faces[id].f(1) = _faces.size() - 2;
+
+    // triangle obc (ex triangle original)    
+    _faces[idFace].f(1) = _faces.size() - 1;
+    _faces[idFace].f(2) = _faces.size() - 2;
 
 }
 

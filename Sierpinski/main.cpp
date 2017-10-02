@@ -7,7 +7,8 @@
 int main(int argc, char *argv[])
 {
 
-    Triangulation t("/home/ad/Documents/M2/GAM/carre.off");
+    //Triangulation t("/home/ad/Documents/M2/GAM/carre.off");
+    Triangulation t("/home/ad/Documents/M2/GAM/test.pts");
 
     VertexIterator v_it;
     FaceCirculator f_c;

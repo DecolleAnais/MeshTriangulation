@@ -79,17 +79,16 @@ FaceCirculator::FaceCirculator(Triangulation * triangulation, unsigned int id_ve
 }
 
 FaceCirculator& FaceCirculator::operator++() {
+    int idVertexInFace, idNextFace;
+
     // pour avoir la face suivante, on regarde si _id_vertex == v_0, v_1 ou v_2 du triangle
     // on prend le vertex suivant (sens trigo) et la face opposee est la face suivante
-    int idVertexInFace = getVertexIdInFace(_id_face, _id_vertex);
-    int idNextFace = _triangulation->_faces[_id_face].f((idVertexInFace + 1)%3);
-
-    while(! (_triangulation->_faces[idNextFace]).isVisible() ) {
+    do{
+        idVertexInFace = getVertexIdInFace(_id_face, _id_vertex);
+        idNextFace = _triangulation->_faces[_id_face].f((idVertexInFace + 1)%3);
+        _id_face = idNextFace;
         // ignore les faces virtuelles
-        idVertexInFace = getVertexIdInFace(idNextFace, _id_vertex);
-        idNextFace = _triangulation->_faces[idNextFace].f((idVertexInFace + 1)%3);
-    }
-    _id_face = idNextFace;
+    }while(! (_triangulation->_faces[idNextFace]).isVisible() ) ;
 
     return *this;
 }
