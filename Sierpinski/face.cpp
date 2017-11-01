@@ -13,7 +13,19 @@ Face::Face(unsigned int v0, unsigned int v1, unsigned int v2) {
     _faces = {-1, -1, -1};
 }
 
-unsigned int& Face::v(unsigned int i) {
+bool Face::operator==(Face const& face) {
+    if(_vertices[0] == face._vertices[0] &&
+       _vertices[1] == face._vertices[1] &&
+       _vertices[2] == face._vertices[2] &&
+       _faces[0] == _faces[0] &&
+       _faces[1] == _faces[1] &&
+       _faces[2] == _faces[2])
+        return true;
+    else
+        return false;
+}
+
+unsigned int& Face::v(const unsigned int i){
     try {
         return _vertices[i];
     }catch(const std::out_of_range & e) {
@@ -21,7 +33,7 @@ unsigned int& Face::v(unsigned int i) {
     }
 }
 
-int& Face::f(unsigned int i) {
+int& Face::f(const unsigned int i){
     try {
         return _faces[i];
     }catch(const std::out_of_range & e) {
@@ -57,4 +69,10 @@ std::vector<unsigned int> Face::getIdBorderFaces() {
 bool Face::isVisible() {
     // si aucun sommet ne possede l'id 0, alors la face est visible
     return _vertices[0] && _vertices[1] && _vertices[2];
+}
+
+bool Face::containsVertex(unsigned int v) {
+    if(_vertices[0] == v || _vertices[1] == v || _vertices[2] == v)
+        return true;
+    return false;
 }

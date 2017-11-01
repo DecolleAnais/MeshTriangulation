@@ -11,24 +11,29 @@ public:
     Face();
     Face(unsigned int v0, unsigned int v1, unsigned int v2);
 
+    bool operator==(Face const& face);
+
     /*** Get functions ***/
     /**
      * @brief v
      * @param i id
      * @return id of the vertex number i
      */
-    unsigned int& v(unsigned int i);
+    unsigned int& v(const unsigned int i);
+
     /**
      * @brief f
      * @param i id
      * @return id of the face number i
      */
-    int& f(unsigned int i);
+    int& f(const unsigned int i);
+
     /**
      * @brief vertices
      * @return an array of 3 vertices
      */
     std::array<unsigned int, 3> vertices();
+
     /**
      * @brief getOpposedFaceId
      * @param v0 id of the first vertex of the edge
@@ -41,6 +46,7 @@ public:
 
     std::vector<unsigned int> getIdBorderFaces();
     bool isVisible();
+    bool containsVertex(unsigned int v);
 
     // No Point saved in this structure, todo in mesh
     /*bool isTrigo();

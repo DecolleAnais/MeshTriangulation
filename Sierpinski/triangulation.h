@@ -78,6 +78,13 @@ public:
      */
     unsigned int getId(const Point3D& p);
 
+    /**
+     * @brief getId
+     * @param f face
+     * @return the id in the _faces vector of this face f
+     */
+    unsigned int getId(const Face& f);
+
 private:
     /**
      * @brief updateNeighbours
@@ -93,40 +100,97 @@ private:
      */
     void loadTriangulation(const char* file);
 
+    /**
+     * @brief loadOFF
+     * @param ifs stream to load (list of points and faces)
+     */
     void loadOFF(std::ifstream & ifs);
 
+    /**
+     * @brief loadPTS
+     * @param ifs stream to load (list of points)
+     */
     void loadPTS(std::ifstream & ifs);
 
+    /**
+     * @brief createFace
+     * @param a vertex id
+     * @param b vertex id
+     * @param c vertex id
+     * @param visible
+     */
     void createFace(unsigned int a, unsigned int b, unsigned int c, bool visible = true);
 
+    /**
+     * @brief isSensTrigo
+     * @param a vertex id
+     * @param b vertex id
+     * @param c vertex id
+     * @return true if the triangle is trigo, else false
+     */
     bool isSensTrigo(unsigned int a, unsigned int b, unsigned int c);
 
+    /**
+     * @brief isInFace
+     * @param d vertex id
+     * @return the id of the face who contains this vertex or -1
+     */
     int isInFace(unsigned int d);
 
+    /**
+     * @brief subdivideFace subdivide the face in 3 triangles with the new vertex
+     * @param idFace face id to subdivide
+     * @param o new vertex id in this face
+     */
     void subdivideFace(unsigned int idFace, unsigned int o);
+
+    /**
+     * @brief flipEdge flip the edge opposed to this vertex in this face
+     * @param idFace
+     * @param idOpposedVertex
+     */
+    void flipEdge(unsigned int idFace, unsigned int idOpposedVertex);
+
+    /**
+     * @brief getIdInFace
+     * @param idFace
+     * @param idVertex
+     * @return the id of the vertex in the face
+     */
+    unsigned int getIdInFace(const unsigned int idFace, const unsigned int idVertex);
+
+    void delaunay();
+
+    bool isContour(Edge edge);
+
+    QVector<Face*> getVirtualFaces();
 
 private:    
     friend class FaceIterator;
     friend class VertexIterator;
     friend class FaceCirculator;
     friend class VertexCirculator;
+
     /**
      * @brief _faces
      * contains faces of the triangulation and the virtual faces
      * (faces created by the virtual vertex that links border faces)
      */
     QVector<Face> _faces;
+
     /**
      * @brief _vertices
      * contains vertices of the triangulation and the virtual vertex
      * (the virtual vertex links border faces)
      */
     QVector<Point3D> _vertices;
+
     /**
      * @brief _nb_vertices
      * number of vertices in the triangulation
      */
     unsigned int _nb_vertices;
+
     /**
      * @brief _nb_faces
      * number of faces in the triangulation

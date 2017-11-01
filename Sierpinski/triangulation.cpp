@@ -1,9 +1,10 @@
 #include "triangulation.h"
 
 #include <iostream>
-#include <fstream> //ifstream, ofstream
-#include <cstdlib> //exit
+#include <fstream>  // ifstream, ofstream
+#include <cstdlib>  // exit
 #include <QtGlobal> // qMin, qMax
+#include <QSet>     // set
 
 
 
@@ -25,6 +26,9 @@ Triangulation::Triangulation()
     //loadTriangulation("/home/ad/Documents/M2/GAM/cube.off");
     //loadTriangulation("/home/ad/Documents/M2/GAM/carre.pts");
     loadTriangulation("/home/ad/Documents/M2/GAM/test.pts");
+    flipEdge(0, 4);
+
+    //delaunay();
 
 }
 
@@ -45,10 +49,13 @@ void Triangulation::draw()
          for(int i = 0;i < _faces.length();i++) {
              // dessine uniquement les faces visibles de la triangulation (n'utilisant pas le sommet fictif)
              if(_faces[i].isVisible()) {
-                 glVertex3f(_vertices[_faces[i].v(0)].x, _vertices[_faces[i].v(0)].y, _vertices[_faces[i].v(0)].z);
-                 glVertex3f(_vertices[_faces[i].v(1)].x, _vertices[_faces[i].v(1)].y, _vertices[_faces[i].v(1)].z);
-                 glVertex3f(_vertices[_faces[i].v(2)].x, _vertices[_faces[i].v(2)].y, _vertices[_faces[i].v(2)].z);
+                 glColor3f(1.0, 1.0, 0.0);
+             }else {
+                 glColor3f(1.0, 0.0, 0.0);
              }
+             glVertex3f(_vertices[_faces[i].v(0)].x, _vertices[_faces[i].v(0)].y, _vertices[_faces[i].v(0)].z);
+             glVertex3f(_vertices[_faces[i].v(1)].x, _vertices[_faces[i].v(1)].y, _vertices[_faces[i].v(1)].z);
+             glVertex3f(_vertices[_faces[i].v(2)].x, _vertices[_faces[i].v(2)].y, _vertices[_faces[i].v(2)].z);
          }
 
     glEnd();
@@ -88,6 +95,10 @@ VertexCirculator Triangulation::getAdjacentVertex(const Point3D& vertex) {
 
 unsigned int Triangulation::getId(const Point3D& p) {
     return _vertices.indexOf(p);
+}
+
+unsigned int Triangulation::getId(const Face& f) {
+    return _faces.indexOf(f);
 }
 
 void Triangulation::updateNeighbours(QMap<Edge, unsigned int> & map, Edge edge, unsigned int idFace) {
@@ -257,6 +268,8 @@ void Triangulation::loadPTS(std::ifstream & ifs) {
             _faces.push_back( Face(_faces[0].v(0), 0, _faces[0].v(1)) );
             _faces.push_back( Face(_faces[0].v(1), 0, _faces[0].v(2)) );
             _faces.push_back( Face(_faces[0].v(2), 0, _faces[0].v(0)) );
+            // liaison du sommet virtuel à une face virtuelle
+            _vertices[0].faceId = 3;
             // liaison des voisins
             _faces[0].f(0) = 2;
             _faces[0].f(1) = 3;
@@ -286,6 +299,78 @@ void Triangulation::loadPTS(std::ifstream & ifs) {
 
             }else {
                 // CAS 2 : le nouveau sommet est a l'exterieur des triangles existants
+                // parcours des faces virtuelles (contour du maillage)
+                // verification pour chaque face virtuelle, si l'arete du contour est visible depuis le nouveau point (test de sens trigo)
+                FaceCirculator fc = FaceCirculator(this, 0);    // circulateur de faces autour du sommet infini (contour)
+                FaceCirculator fc_begin = fc;
+                std::vector<unsigned int> near_faces;   // contient les ids des faces proches, contours visible pour le nouveau point
+
+                bool wait = true;   // variable qui attend de tomber sur un contour non proche
+                bool trigo;         // test trigo pour savoir si le point est visible depuis un contour
+                // boucle sur tout le contour
+                do{
+                    Face f = *fc;
+                    // verifie si le point est visible depuis ce contour
+                    trigo = isSensTrigo(i, f.v(2), f.v(0));
+
+                    // si on n'est plus en phase de recherche du premier contour non proche
+                    if( !wait && trigo) {
+                        // ajoute la face aux faces proches a traiter
+                        near_faces.emplace_back(getId(f));
+                    }
+                    // si un contour non proche a ete trouve pour la premiere fois
+                    if(wait && !trigo) {
+                        // on arrete de chercher
+                        wait = false;
+                        // actualisation de fc_begin pour ne faire qu'une boucle
+                        fc_begin = fc;
+                    }
+                    ++fc;
+                }while(wait || (!wait && fc != fc_begin) );
+
+                // maj face id du nouveau sommet
+                _vertices[i].faceId = near_faces[0];
+
+                // traiter les faces trouvees
+                for(unsigned int id : near_faces) {
+                    // remplace le sommet infini par le nouveau point dans la face virtuelle
+                    _faces[id].v(1) = i;
+                }
+                // creer 2 nouvelles faces vituelles, une pour chaque extremite des faces a traiter
+                unsigned int first_face = near_faces[0];
+                unsigned int last_face = near_faces[near_faces.size() - 1];
+
+                // face virtuelle a la 1ere face
+                unsigned int a = i;
+                unsigned int b = 0;
+                unsigned int c = _faces[first_face].v(2);
+                Face fa = Face(a, b, c);
+                fa.f(0) = _faces[first_face].f(0);
+                fa.f(1) = first_face;
+                fa.f(2) = _faces.size() + 1;
+                _faces.push_back(fa);
+                // maj faceId sommet virtuel
+                _vertices[0].faceId = _faces.size() - 1;
+
+                // face virtuelle a la derniere face
+                a = _faces[last_face].v(0);
+                b = 0;
+                c = i;
+                fa = Face(a, b, c);
+                fa.f(0) = _faces.size() - 1;
+                fa.f(1) = last_face;
+                fa.f(2) = _faces[last_face].f(2);
+                _faces.push_back(fa);
+
+                // maj voisins virtuels
+                unsigned int left = _faces[first_face].f(0);
+                unsigned int right = _faces[last_face].f(2);
+                _faces[left].f(2) =  _faces.size() - 2;
+                _faces[right].f(0) =  _faces.size() - 1;
+
+                // maj voisins des faces de chaque extremite avec les nouvelles faces virtuelles
+                _faces[first_face].f(0) = _faces.size() - 2;
+                _faces[last_face].f(2) = _faces.size() - 1;
             }
 
 
@@ -381,10 +466,101 @@ void Triangulation::subdivideFace(unsigned int idFace, unsigned int o) {
 
 }
 
+void Triangulation::flipEdge(unsigned int idFace, unsigned int idOpposedVertex) {
+    int idInFace = getIdInFace(idFace, idOpposedVertex);
+    if(idInFace != -1) {
+        unsigned int idFace2 = _faces[idFace].f(idInFace);
+        unsigned int i0, i1, j1, i2, j2;
+
+        // recuperation ids sommets a modifier
+        i0 = _faces[idFace].v((idInFace + 2)%3);
+        unsigned int idInFace2 = getIdInFace(idFace2, i0);
+
+        // attribution des nouveaux sommets
+        i1 = idOpposedVertex;
+        j1 = _faces[idFace2].v((idInFace2 + 2)%3);
+        _faces[idFace].v((idInFace + 2)%3) = j1; // i0 -> j1
+        _faces[idFace2].v((idInFace2 + 1)%3) = i1; // j0 -> i1
+
+        // maj faceId des sommets i2 et j2
+        i2 = _faces[idFace].v((idInFace + 1)%3);
+        j2 = _faces[idFace2].v(idInFace2);
+        _vertices[i2].faceId = idFace;
+        _vertices[j2].faceId = idFace2;
+
+        // maj des voisins
+        unsigned int id = getIdInFace(idFace, i1);
+        _faces[idFace].f(id) = _faces[idFace2].f(getIdInFace(idFace2, j2));
+        id = getIdInFace(idFace2, j1);
+        _faces[idFace2].f(id) = _faces[idFace].f(getIdInFace(idFace, i2));
+        id = getIdInFace(idFace, i2);
+        _faces[idFace].f(id) = idFace2;
+        id = getIdInFace(idFace2, j2);
+        _faces[idFace2].f(id) = idFace;
+    }
+}
 
 
+unsigned int Triangulation::getIdInFace(const unsigned int idFace, const unsigned int idVertex) {
+    if(_faces[idFace].v(0) == idVertex)
+        return 0;
+    else if(_faces[idFace].v(1) == idVertex)
+        return 1;
+    else if(_faces[idFace].v(2) == idVertex)
+        return 2;
+    else
+        return -1;
+}
 
 
+void Triangulation::delaunay() {
+/*
+    // aretes a traiter : paire de sommets
+    //QSet<Edge> toProcess;
+    QSet<Edge> toProcess;
+
+    // parcours des faces
+    for(int i = 0;i < _faces.size();i++) {
+        // parcours des sommets de la face
+        for(unsigned int j = 0;j < 3;j++) {
+            // creation arete
+            unsigned int id_vertex_0 = _faces[i].v(j);
+            unsigned int id_vertex_1 = _faces[i].v( (j+1)%3 );
+            Edge edge = Edge(id_vertex_0, id_vertex_1);
+            if(_faces[i].isVisible() &&
+               !isContour(edge)) {
+                // ajout de l'arete dans les aretes a traiter, si elle n'est pas liee a une face virtuelle
+                toProcess.insert(edge);
+            }
+        }
+    }
+    std::cout << toProcess.size() << std::endl;
+    for(Edge e : toProcess) {
+        //std::cout << e.first << "  " << e.second << std::endl;
+    }
+*/
+}
+
+bool Triangulation::isContour(Edge edge) {
+/*    if( edge.first != 0 && edge.second != 0 ) {
+        for( Face* f : getVirtualFaces() ) {
+            if( f->containsVertex(edge.first) && f->containsVertex(edge.second) ) {
+                std::cout << edge.first << "  " << edge.second << " est un contour" << std::endl;
+                return true;
+            }
+        }
+    }*/
+    return false;
+}
+
+QVector<Face*> Triangulation::getVirtualFaces() {
+    QVector<Face*> virtualFaces;
+    for(Face f : _faces) {
+        if(!f.isVisible())
+            virtualFaces.push_back(&f);
+    }
+    return virtualFaces;
+}
 
 
 
