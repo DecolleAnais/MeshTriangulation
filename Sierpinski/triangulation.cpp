@@ -26,8 +26,8 @@ Triangulation::Triangulation()
     //loadTriangulation("/home/ad/Documents/M2/GAM/test_simple.pts");
 
 
-    Delaunay_Voronoi delaunay_voronoi(this);
-    delaunay_voronoi.delaunay();
+    //Delaunay_Voronoi delaunay_voronoi(this);
+    //delaunay_voronoi.delaunay();
 }
 
 Triangulation::Triangulation (const char* file) {
@@ -294,85 +294,13 @@ void Triangulation::loadPTS(std::ifstream & ifs) {
                 // CAS 1 :  le nouveau sommet est dans un triangle existant
                 // separation du triangle en 3
                 subdivideFace(idFace, i);
-
             }else {
                 // CAS 2 : le nouveau sommet est a l'exterieur des triangles existants
-                // parcours des faces virtuelles (contour du maillage)
-                // verification pour chaque face virtuelle, si l'arete du contour est visible depuis le nouveau point (test de sens trigo)
-                FaceCirculator fc = FaceCirculator(this, 0);    // circulateur de faces autour du sommet infini (contour)
-                FaceCirculator fc_begin = fc;
-                std::vector<unsigned int> near_faces;   // contient les ids des faces proches, contours visible pour le nouveau point
-
-                bool wait = true;   // variable qui attend de tomber sur un contour non proche
-                bool trigo;         // test trigo pour savoir si le point est visible depuis un contour
-                // boucle sur tout le contour
-                do{
-                    Face f = *fc;
-                    // verifie si le point est visible depuis ce contour
-                    trigo = isSensTrigo(i, f.v(2), f.v(0));
-
-                    // si on n'est plus en phase de recherche du premier contour non proche
-                    if( !wait && trigo) {
-                        // ajoute la face aux faces proches a traiter
-                        near_faces.emplace_back(getId(f));
-                    }
-                    // si un contour non proche a ete trouve pour la premiere fois
-                    if(wait && !trigo) {
-                        // on arrete de chercher
-                        wait = false;
-                        // actualisation de fc_begin pour ne faire qu'une boucle
-                        fc_begin = fc;
-                    }
-                    ++fc;
-                }while(wait || (!wait && fc != fc_begin) );
-
-                // maj face id du nouveau sommet
-                _vertices[i].faceId = near_faces[0];
-
-                // traiter les faces trouvees
-                for(unsigned int id : near_faces) {
-                    // remplace le sommet infini par le nouveau point dans la face virtuelle
-                    _faces[id].v(1) = i;
-                }
-                // creer 2 nouvelles faces vituelles, une pour chaque extremite des faces a traiter
-                unsigned int first_face = near_faces[0];
-                unsigned int last_face = near_faces[near_faces.size() - 1];
-
-                // face virtuelle a la 1ere face
-                unsigned int a = i;
-                unsigned int b = 0;
-                unsigned int c = _faces[first_face].v(2);
-                Face fa = Face(a, b, c);
-                fa.f(0) = _faces[first_face].f(0);
-                fa.f(1) = first_face;
-                fa.f(2) = _faces.size() + 1;
-                _faces.push_back(fa);
-                _nb_faces++;
-                // maj faceId sommet virtuel
-                _vertices[0].faceId = _faces.size() - 1;
-
-                // face virtuelle a la derniere face
-                a = _faces[last_face].v(0);
-                b = 0;
-                c = i;
-                fa = Face(a, b, c);
-                fa.f(0) = _faces.size() - 1;
-                fa.f(1) = last_face;
-                fa.f(2) = _faces[last_face].f(2);
-                _faces.push_back(fa);
-
-                // maj voisins virtuels
-                unsigned int left = _faces[first_face].f(0);
-                unsigned int right = _faces[last_face].f(2);
-                _faces[left].f(2) =  _faces.size() - 2;
-                _faces[right].f(0) =  _faces.size() - 1;
-
-                // maj voisins des faces de chaque extremite avec les nouvelles faces virtuelles
-                _faces[first_face].f(0) = _faces.size() - 2;
-                _faces[last_face].f(2) = _faces.size() - 1;
+                addExternVertex(i);
             }
-
-
+            // delaunay iteratif
+            Delaunay_Voronoi delaunay_voronoi(this);
+            delaunay_voronoi.delaunay(getOpposedEdges(i));
         }
     }
 
@@ -461,6 +389,82 @@ void Triangulation::subdivideFace(unsigned int idFace, unsigned int o) {
     _faces[idFace].f(1) = _faces.size() - 1;
     _faces[idFace].f(2) = _faces.size() - 2;
 
+}
+
+void Triangulation::addExternVertex(unsigned int i) {
+    // parcours des faces virtuelles (contour du maillage)
+    // verification pour chaque face virtuelle, si l'arete du contour est visible depuis le nouveau point (test de sens trigo)
+    FaceCirculator fc = FaceCirculator(this, 0);    // circulateur de faces autour du sommet infini (contour)
+    FaceCirculator fc_begin = fc;
+    std::vector<unsigned int> near_faces;   // contient les ids des faces proches, contours visible pour le nouveau point
+
+    bool wait = true;   // variable qui attend de tomber sur un contour non proche
+    bool trigo;         // test trigo pour savoir si le point est visible depuis un contour
+    // boucle sur tout le contour
+    do{
+        Face f = *fc;
+        // verifie si le point est visible depuis ce contour
+        trigo = isSensTrigo(i, f.v(2), f.v(0));
+
+        // si on n'est plus en phase de recherche du premier contour non proche
+        if( !wait && trigo) {
+            // ajoute la face aux faces proches a traiter
+            near_faces.emplace_back(getId(f));
+        }
+        // si un contour non proche a ete trouve pour la premiere fois
+        if(wait && !trigo) {
+            // on arrete de chercher
+            wait = false;
+            // actualisation de fc_begin pour ne faire qu'une boucle
+            fc_begin = fc;
+        }
+        ++fc;
+    }while(wait || (!wait && fc != fc_begin) );
+
+    // maj face id du nouveau sommet
+    _vertices[i].faceId = near_faces[0];
+
+    // traiter les faces trouvees
+    for(unsigned int id : near_faces) {
+        // remplace le sommet infini par le nouveau point dans la face virtuelle
+        _faces[id].v(1) = i;
+    }
+    // creer 2 nouvelles faces vituelles, une pour chaque extremite des faces a traiter
+    unsigned int first_face = near_faces[0];
+    unsigned int last_face = near_faces[near_faces.size() - 1];
+
+    // face virtuelle a la 1ere face
+    unsigned int a = i;
+    unsigned int b = 0;
+    unsigned int c = _faces[first_face].v(2);
+    Face fa = Face(a, b, c);
+    fa.f(0) = _faces[first_face].f(0);
+    fa.f(1) = first_face;
+    fa.f(2) = _faces.size() + 1;
+    _faces.push_back(fa);
+    _nb_faces++;
+    // maj faceId sommet virtuel
+    _vertices[0].faceId = _faces.size() - 1;
+
+    // face virtuelle a la derniere face
+    a = _faces[last_face].v(0);
+    b = 0;
+    c = i;
+    fa = Face(a, b, c);
+    fa.f(0) = _faces.size() - 1;
+    fa.f(1) = last_face;
+    fa.f(2) = _faces[last_face].f(2);
+    _faces.push_back(fa);
+
+    // maj voisins virtuels
+    unsigned int left = _faces[first_face].f(0);
+    unsigned int right = _faces[last_face].f(2);
+    _faces[left].f(2) =  _faces.size() - 2;
+    _faces[right].f(0) =  _faces.size() - 1;
+
+    // maj voisins des faces de chaque extremite avec les nouvelles faces virtuelles
+    _faces[first_face].f(0) = _faces.size() - 2;
+    _faces[last_face].f(2) = _faces.size() - 1;
 }
 
 void Triangulation::flipEdge(unsigned int idFace, unsigned int idOpposedVertex) {

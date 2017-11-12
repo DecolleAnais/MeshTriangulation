@@ -146,6 +146,8 @@ private:
      */
     void subdivideFace(unsigned int idFace, unsigned int o);
 
+    void addExternVertex(unsigned int i);
+
     /**
      * @brief flipEdge flip the edge opposed to this vertex in this face
      * @param idFace
@@ -204,7 +206,6 @@ private:
      * number of faces in the triangulation
      */
     unsigned int _nb_faces;
-
 };
 
 #endif // TRIANGULATION_H
