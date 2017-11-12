@@ -5,10 +5,7 @@
 #include <cstdlib>  // exit
 #include <QtGlobal> // qMin, qMax
 #include <QSet>     // set
-
-
-
-
+#include <QQueue>   // queue
 
 Triangulation::Triangulation()
 {
@@ -26,10 +23,11 @@ Triangulation::Triangulation()
     //loadTriangulation("/home/ad/Documents/M2/GAM/cube.off");
     //loadTriangulation("/home/ad/Documents/M2/GAM/carre.pts");
     loadTriangulation("/home/ad/Documents/M2/GAM/test.pts");
-    flipEdge(0, 4);
+    //loadTriangulation("/home/ad/Documents/M2/GAM/test_simple.pts");
 
-    //delaunay();
 
+    Delaunay_Voronoi delaunay_voronoi(this);
+    delaunay_voronoi.delaunay();
 }
 
 Triangulation::Triangulation (const char* file) {
@@ -113,12 +111,12 @@ void Triangulation::updateNeighbours(QMap<Edge, unsigned int> & map, Edge edge, 
         unsigned int neighbour = map.value(edge);
 
         // face opposee de la face actuelle
-        unsigned int idOpposedFace = _faces[idFace].getIdOpposedFace(edge.first, edge.second);
+        unsigned int idOpposedFace = _faces[idFace].getIdOpposedFace(edge.first(), edge.second());
         // maj du voisin pour la face actuelle, on connait le sommet oppose
         _faces[idFace].f(idOpposedFace) = neighbour;
 
         // face opposee du voisin
-        idOpposedFace = _faces[neighbour].getIdOpposedFace(edge.first, edge.second);
+        idOpposedFace = _faces[neighbour].getIdOpposedFace(edge.first(), edge.second());
         // maj du voisin
         _faces[neighbour].f(idOpposedFace) = idFace;
 
@@ -205,11 +203,11 @@ void Triangulation::loadOFF(std::ifstream & ifs) {
         // 3 couple d'indices de sommets
         // l'indice min en premier
         // fonction d'association des faces updateNeighbours()
-        edge = { qMin(id_v0, id_v1), qMax(id_v0, id_v1) };
+        edge = Edge(this, id_v0, id_v1);
         updateNeighbours(map, edge, i);
-        edge = { qMin(id_v1, id_v2), qMax(id_v1, id_v2) };
+        edge = Edge(this, id_v1, id_v2);
         updateNeighbours(map, edge, i);
-        edge = { qMin(id_v0, id_v2), qMax(id_v0, id_v2) };
+        edge = Edge(this, id_v0, id_v2);
         updateNeighbours(map, edge, i);
     }
 
@@ -232,9 +230,9 @@ void Triangulation::loadOFF(std::ifstream & ifs) {
             _faces[lastId].f(1) = i; // maj voisin pour la face fictive (f1 car c'est la face opposee au sommet fictif v1)
 
             // maj des voisins entre faces fictives
-            edge = { 0, a };
+            edge = Edge(this, 0, a);
             updateNeighbours(map, edge, lastId);
-            edge = { 0, b };
+            edge = Edge(this, 0, b);
             updateNeighbours(map, edge, lastId);
         }
     }
@@ -349,6 +347,7 @@ void Triangulation::loadPTS(std::ifstream & ifs) {
                 fa.f(1) = first_face;
                 fa.f(2) = _faces.size() + 1;
                 _faces.push_back(fa);
+                _nb_faces++;
                 // maj faceId sommet virtuel
                 _vertices[0].faceId = _faces.size() - 1;
 
@@ -440,8 +439,6 @@ void Triangulation::subdivideFace(unsigned int idFace, unsigned int o) {
     // triangle aoc
     createFace(a, o, _faces[idFace].v(2));
 
-
-
     // maj des voisins
 
     // triangle aoc
@@ -467,6 +464,7 @@ void Triangulation::subdivideFace(unsigned int idFace, unsigned int o) {
 }
 
 void Triangulation::flipEdge(unsigned int idFace, unsigned int idOpposedVertex) {
+    std::cout << "flip face " << idFace << " sommet oppose " << idOpposedVertex << std::endl;
     int idInFace = getIdInFace(idFace, idOpposedVertex);
     if(idInFace != -1) {
         unsigned int idFace2 = _faces[idFace].f(idInFace);
@@ -513,53 +511,50 @@ unsigned int Triangulation::getIdInFace(const unsigned int idFace, const unsigne
 }
 
 
-void Triangulation::delaunay() {
-/*
-    // aretes a traiter : paire de sommets
-    //QSet<Edge> toProcess;
-    QSet<Edge> toProcess;
+QQueue<Edge> Triangulation::getEdgesInside() {
+    QQueue<Edge> edges_inside;
 
     // parcours des faces
     for(int i = 0;i < _faces.size();i++) {
         // parcours des sommets de la face
-        for(unsigned int j = 0;j < 3;j++) {
-            // creation arete
+        for(unsigned int j = 0;j <= 2;j++) {
             unsigned int id_vertex_0 = _faces[i].v(j);
             unsigned int id_vertex_1 = _faces[i].v( (j+1)%3 );
-            Edge edge = Edge(id_vertex_0, id_vertex_1);
-            if(_faces[i].isVisible() &&
-               !isContour(edge)) {
-                // ajout de l'arete dans les aretes a traiter, si elle n'est pas liee a une face virtuelle
-                toProcess.insert(edge);
+            // si l'arete ne contient pas le sommet virtuel
+            if( id_vertex_0 != 0 && id_vertex_1 != 0 ) {
+                // creation arete
+                Edge e = Edge(this, id_vertex_0, id_vertex_1);
+                // si l'arete n'est pas un contour
+                if( !e.isContour() && !edges_inside.contains(e) ) {
+                    // ajout de l'arete aux aretes interieures
+                    edges_inside.enqueue(e);
+                }
             }
         }
     }
-    std::cout << toProcess.size() << std::endl;
-    for(Edge e : toProcess) {
-        //std::cout << e.first << "  " << e.second << std::endl;
-    }
-*/
+    return edges_inside;
 }
 
-bool Triangulation::isContour(Edge edge) {
-/*    if( edge.first != 0 && edge.second != 0 ) {
-        for( Face* f : getVirtualFaces() ) {
-            if( f->containsVertex(edge.first) && f->containsVertex(edge.second) ) {
-                std::cout << edge.first << "  " << edge.second << " est un contour" << std::endl;
-                return true;
-            }
+Edge Triangulation::getEdge(unsigned int idFace, unsigned int idOpposedVertex) {
+    Face f = _faces[idFace];
+    unsigned int id = getIdInFace(idFace, idOpposedVertex);
+    unsigned int a = f.v((id+1)%3);
+    unsigned int b = f.v((id+2)%3);
+    Edge e(this, a, b);
+    return e;
+}
+
+QQueue<Edge> Triangulation::getOpposedEdges(unsigned int idVertex) {
+    QQueue<Edge> opposedEdges;
+    // on cherche les faces reelles qui contiennent ce sommet
+    for(int i = 0;i < _faces.length();i++) {
+        if(_faces[i].isVisible() && _faces[i].containsVertex(idVertex)) {
+            // ajout de l'arete opposee au sommet dans cette face
+            Edge e = getEdge(i, idVertex);
+            opposedEdges.enqueue(e);
         }
-    }*/
-    return false;
-}
-
-QVector<Face*> Triangulation::getVirtualFaces() {
-    QVector<Face*> virtualFaces;
-    for(Face f : _faces) {
-        if(!f.isVisible())
-            virtualFaces.push_back(&f);
     }
-    return virtualFaces;
+    return opposedEdges;
 }
 
 

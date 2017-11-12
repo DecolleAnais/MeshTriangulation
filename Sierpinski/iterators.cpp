@@ -152,15 +152,17 @@ VertexCirculator::VertexCirculator(Triangulation * triangulation, unsigned int i
 
 VertexCirculator& VertexCirculator::operator++() {
     // recuperation face opposee a _id_vertex
-    _id_face = _triangulation->_faces[_id_face].f(_id_vertex);
+    int idVertexInFace = getVertexIdInFace(_id_face, _id_vertex);
+    _id_face = _triangulation->_faces[_id_face].f(idVertexInFace);
+
     // recuperation numero sommet (axe de rotation) dans le triangle
-    int idVertexInFace = getVertexIdInFace(_id_face, _id_vertex_axis);
+    idVertexInFace = getVertexIdInFace(_id_face, _id_vertex_axis);
 
     // recuperation id prochain sommet du triangle
     int nextId = getNextVertex(_id_face, idVertexInFace);
 
     // on passe le sommet virtuel
-    if(!nextId) {
+    if(nextId == 0) {
         _id_face = _triangulation->_faces[_id_face].f(nextId);
         idVertexInFace = getVertexIdInFace(_id_face, _id_vertex_axis);
         nextId = getNextVertex(_id_face, idVertexInFace);

@@ -21,7 +21,9 @@ SOURCES += main.cpp\
     point3d.cpp \
     vec3.cpp \
     iterators.cpp \
-    triangulation.cpp
+    triangulation.cpp \
+    edge.cpp \
+    delaunay_voronoi.cpp
 
 HEADERS  += mainwindow.h \
     gldisplay.h \
@@ -30,6 +32,8 @@ HEADERS  += mainwindow.h \
     point3d.h \
     vec3.h \
     iterators.h \
-    triangulation.h
+    triangulation.h \
+    edge.h \
+    delaunay_voronoi.h
 
 FORMS    += mainwindow.ui

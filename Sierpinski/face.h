@@ -42,6 +42,8 @@ public:
      */
     unsigned int getIdOpposedFace(const unsigned int v0, const unsigned int v1);
 
+    int getIdOpposedVertex(const unsigned int v0, const unsigned int v1);
+
     /*** Others ***/
 
     std::vector<unsigned int> getIdBorderFaces();

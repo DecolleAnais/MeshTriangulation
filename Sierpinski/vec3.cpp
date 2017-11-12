@@ -1,4 +1,5 @@
 #include "vec3.h"
+#include <math.h>
 
 Vec3::Vec3() {
 
@@ -26,4 +27,12 @@ Vec3 Vec3::cross(const Vec3& v) {
 
 float Vec3::dot(const Vec3& v) {
     return x*v.x + y*v.y + z*v.z;
+}
+
+float Vec3::cosinus(Vec3& v) {
+    return ( this->dot(v) ) / ( this->length() * v.length() );
+}
+
+float Vec3::length() {
+    return sqrt( x*x + y*y + z*z );
 }

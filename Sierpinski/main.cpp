@@ -6,7 +6,7 @@
 
 int main(int argc, char *argv[])
 {
-
+    /*
     //Triangulation t("/home/ad/Documents/M2/GAM/carre.off");
     Triangulation t("/home/ad/Documents/M2/GAM/test.pts");
 
@@ -28,6 +28,7 @@ int main(int argc, char *argv[])
         std::cout << "valence du sommet " << cpt << std::endl;
     }
 
+    */
 
     QApplication a(argc, argv);
     MainWindow w;

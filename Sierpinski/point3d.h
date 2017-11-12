@@ -21,6 +21,7 @@ public:
     Point3D operator+ (const Vec3& v);
     friend std::ostream& operator<<(std::ostream& o, const Point3D& p);
 
+    /*** Others ***/
 
     /*** Public fields ***/
 

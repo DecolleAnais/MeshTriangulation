@@ -9,14 +9,16 @@
 #include "point3d.h"
 #include "face.h"
 #include "iterators.h"
+#include "edge.h"
+#include "delaunay_voronoi.h"
+#include <QQueue>
 
 class FaceIterator;
 class VertexIterator;
 class FaceCirculator;
 class VertexCirculator;
-
-// ids of 2 vertex of the couple (ids dans l'ordre croissant)
-typedef QPair<unsigned int, unsigned int> Edge;
+class Edge;
+class Delaunay_Voronoi;
 
 class Triangulation
 {
@@ -159,17 +161,23 @@ private:
      */
     unsigned int getIdInFace(const unsigned int idFace, const unsigned int idVertex);
 
-    void delaunay();
+    /**
+     * @brief getEdgesInside
+     * @return a set containing the edges inside the triangulation (not the contours)
+     */
+    QQueue<Edge> getEdgesInside();
 
-    bool isContour(Edge edge);
+    Edge getEdge(unsigned int idFace, unsigned int idOpposedVertex);
 
-    QVector<Face*> getVirtualFaces();
+    QQueue<Edge> getOpposedEdges(unsigned int idVertex);
 
 private:    
     friend class FaceIterator;
     friend class VertexIterator;
     friend class FaceCirculator;
     friend class VertexCirculator;
+    friend class Edge;
+    friend class Delaunay_Voronoi;
 
     /**
      * @brief _faces

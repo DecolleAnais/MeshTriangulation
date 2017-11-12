@@ -31,7 +31,9 @@ public:
      */
     float dot(const Vec3& v);
 
+    float cosinus(Vec3& v);
 
+    float length();
 
     /*** Public fields ***/
     float x,y,z;
