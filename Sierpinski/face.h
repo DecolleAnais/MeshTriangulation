@@ -3,6 +3,7 @@
 
 #include <array>
 #include <vector>
+#include "circle.h"
 
 class Face {
 
@@ -49,10 +50,9 @@ public:
     std::vector<unsigned int> getIdBorderFaces();
     bool isVisible();
     bool containsVertex(unsigned int v);
-
     // No Point saved in this structure, todo in mesh
     /*bool isTrigo();
-    Point3D getCenterCirconscriptedCircle();
+
     bool isInside(Point3D p);*/
 
 

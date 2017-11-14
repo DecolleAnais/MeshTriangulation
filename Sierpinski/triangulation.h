@@ -96,6 +96,8 @@ private:
      */
     void updateNeighbours(QMap<Edge, unsigned int> & map, Edge edge, unsigned int idFace);
 
+    void updateNeighbour(unsigned int idFace, Edge edge, unsigned int idNeighbour);
+
     /**
      * @brief loadTriangulation
      * @param file .off or .pts to load

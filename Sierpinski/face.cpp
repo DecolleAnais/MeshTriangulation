@@ -92,3 +92,4 @@ bool Face::containsVertex(unsigned int v) {
         return true;
     return false;
 }
+

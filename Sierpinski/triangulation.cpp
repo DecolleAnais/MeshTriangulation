@@ -22,8 +22,9 @@ Triangulation::Triangulation()
     //loadTriangulation("/home/ad/Documents/M2/GAM/carre.off");
     //loadTriangulation("/home/ad/Documents/M2/GAM/cube.off");
     //loadTriangulation("/home/ad/Documents/M2/GAM/carre.pts");
-    loadTriangulation("/home/ad/Documents/M2/GAM/test.pts");
-    //loadTriangulation("/home/ad/Documents/M2/GAM/test_simple.pts");
+    //loadTriangulation("/home/ad/Documents/M2/GAM/test.pts");
+    loadTriangulation("/home/ad/Documents/M2/GAM/test_simple.pts");
+    //loadTriangulation("/home/ad/Documents/M2/GAM/heart.pts");
 
 
     //Delaunay_Voronoi delaunay_voronoi(this);
@@ -42,8 +43,8 @@ Triangulation::Triangulation (const char* file) {
 
 void Triangulation::draw()
 {
+    // dessine les triangles
     glBegin(GL_TRIANGLES);
-
          for(int i = 0;i < _faces.length();i++) {
              // dessine uniquement les faces visibles de la triangulation (n'utilisant pas le sommet fictif)
              if(_faces[i].isVisible()) {
@@ -55,9 +56,21 @@ void Triangulation::draw()
              glVertex3f(_vertices[_faces[i].v(1)].x, _vertices[_faces[i].v(1)].y, _vertices[_faces[i].v(1)].z);
              glVertex3f(_vertices[_faces[i].v(2)].x, _vertices[_faces[i].v(2)].y, _vertices[_faces[i].v(2)].z);
          }
-
     glEnd();
-
+    // dessine les centres des cercles circonscrits
+    glBegin(GL_POINTS);
+        glColor3f(1.0, 1.0, 1.0);
+        for(int i = 0;i < _faces.length();i++) {
+            if(_faces[i].isVisible()) {
+                Point3D a = _vertices[_faces[i].v(0)];
+                Point3D b = _vertices[_faces[i].v(1)];
+                Point3D c = _vertices[_faces[i].v(2)];
+                Circle circle;
+                circle.circumscribed(a, b, c);
+                glVertex3f(circle.center().x, circle.center().y, circle.center().z);
+            }
+        }
+    glEnd();
 }
 
 
@@ -247,6 +260,7 @@ void Triangulation::loadPTS(std::ifstream & ifs) {
 
     // lecture coords sommets
     for(unsigned int i = 1;i <= _nb_vertices;++i) {  // debut a 1 pour laisser le sommet fictif en position 0
+        std::cout << "Ajout sommet " << i <<std::endl;
         ifs >> v_x;
         ifs >> v_y;
         ifs >> v_z;
@@ -301,6 +315,8 @@ void Triangulation::loadPTS(std::ifstream & ifs) {
             // delaunay iteratif
             Delaunay_Voronoi delaunay_voronoi(this);
             delaunay_voronoi.delaunay(getOpposedEdges(i));
+
+
         }
     }
 
@@ -380,14 +396,49 @@ void Triangulation::subdivideFace(unsigned int idFace, unsigned int o) {
     _faces[_faces.size() - 2].f(2)  = _faces[idFace].f(2);
 
     // maj voisins du triangle original abc
-    unsigned int id = _faces[idFace].f(1);
+    /*unsigned int id = _faces[idFace].f(1);
     _faces[id].f(1) = _faces.size() - 1;
     id = _faces[idFace].f(2);
-    _faces[id].f(1) = _faces.size() - 2;
+    _faces[id].f(0) = _faces.size() - 2;*/
+
+    /* // tentative 2
+    unsigned int id = _faces[idFace].f(1);
+    unsigned int id2 = getIdInFace(id, _faces[idFace].v(1) );
+    _faces[id].f( (id2 - 1) %3 ) = _faces.size() - 1;
+    id = _faces[idFace].f(2);
+    id2 = getIdInFace(id, _faces[idFace].v(2) );
+    _faces[id].f( (id2 + 1)%3 ) = _faces.size() - 2;*/
 
     // triangle obc (ex triangle original)    
     _faces[idFace].f(1) = _faces.size() - 1;
     _faces[idFace].f(2) = _faces.size() - 2;
+
+    // utilisation de la fonction de voisinage
+    unsigned int idFaceABO = _faces.size() - 2;
+    unsigned int idFaceAOC = _faces.size() - 1;
+    unsigned int idFaceOBC = idFace;
+    unsigned int idFaceOpposedB = _faces[idFaceAOC].f(1);
+    unsigned int idFaceOpposedA = _faces[idFaceOBC].f(0);
+    unsigned int idFaceOpposedC = _faces[idFaceABO].f(2);
+    //unsigned int a = _faces[idFaceABO].v(0);
+    unsigned int b = _faces[idFaceABO].v(1);
+    unsigned int c = _faces[idFaceAOC].v(2);
+
+    updateNeighbour(idFaceOpposedB, Edge(this, a, c), idFaceAOC);
+    updateNeighbour(idFaceOpposedC, Edge(this, a, b), idFaceABO);
+
+    /*
+    QMap< Edge, unsigned int> map;
+
+    Edge e(this, b, c);
+    updateNeighbours(map, e, idFaceOBC);
+    updateNeighbours(map, e, idFaceOpposedA);
+    e = Edge(this, c, a);
+    updateNeighbours(map, e, idFaceAOC);
+    updateNeighbours(map, e, idFaceOpposedB);
+    e = Edge(this, a, b);
+    updateNeighbours(map, e, idFaceABO);
+    updateNeighbours(map, e, idFaceOpposedC);*/
 
 }
 
@@ -490,7 +541,7 @@ void Triangulation::flipEdge(unsigned int idFace, unsigned int idOpposedVertex) 
         _vertices[i2].faceId = idFace;
         _vertices[j2].faceId = idFace2;
 
-        // maj des voisins
+        // maj des voisins des 2 faces flippees
         unsigned int id = getIdInFace(idFace, i1);
         _faces[idFace].f(id) = _faces[idFace2].f(getIdInFace(idFace2, j2));
         id = getIdInFace(idFace2, j1);
@@ -499,6 +550,13 @@ void Triangulation::flipEdge(unsigned int idFace, unsigned int idOpposedVertex) 
         _faces[idFace].f(id) = idFace2;
         id = getIdInFace(idFace2, j2);
         _faces[idFace2].f(id) = idFace;
+        // maj des faces voisines aux faces flippees
+        unsigned int idF = _faces[idFace].f( getIdInFace(idFace, i1) );
+        id = getIdInFace(idF, i2);
+        _faces[idF].f( (id + 1)%3) = idFace;
+        idF = _faces[idFace2].f( getIdInFace(idFace2, j1) );
+        id = getIdInFace(idF, j2);
+        _faces[idF].f( (id + 1)%3) = idFace2;
     }
 }
 
@@ -558,8 +616,13 @@ QQueue<Edge> Triangulation::getOpposedEdges(unsigned int idVertex) {
             opposedEdges.enqueue(e);
         }
     }
+    std::cout << "nb aretes a traiter " << opposedEdges.length() << std::endl;
     return opposedEdges;
 }
 
-
+void Triangulation::updateNeighbour(unsigned int idFace, Edge edge, unsigned int idNeighbour) {
+    unsigned int idOpposedVertex = _faces[idFace].getIdOpposedVertex(edge.first(), edge.second());
+    idOpposedVertex = getIdInFace(idFace, idOpposedVertex);
+    _faces[idFace].f(idOpposedVertex) = idNeighbour;
+}
 

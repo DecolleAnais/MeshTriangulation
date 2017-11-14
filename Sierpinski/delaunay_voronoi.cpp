@@ -34,10 +34,11 @@ void Delaunay_Voronoi::delaunay(QQueue<Edge> toProcess) {
         // recuperation des ids des sommets opposes a l'arete
         int a = _t->_faces[ f0 ].getIdOpposedVertex(e.first(), e.second());
         int d = _t->_faces[ f1 ].getIdOpposedVertex(e.first(), e.second());
-        //std::cout << " a=" << a << " b=" << b <<" c=" << c << " d=" << d << std::endl;
+        std::cout << " a=" << a << " b=" << b <<" c=" << c << " d=" << d << std::endl;
         // si ce n'est pas une forme convexe
-        if(!_t->isSensTrigo(a,d,c) &&
-           _t->isSensTrigo(a,d,b)) {
+        if( !e.isContour() &&
+            ( ( !_t->isSensTrigo(a,d,c) && _t->isSensTrigo(a,d,b) ) ||
+              ( _t->isSensTrigo(a,d,c) && !_t->isSensTrigo(a,d,b) ) ) ){
             Vec3 v_ba(_t->_vertices[a] - _t->_vertices[b]);
             Vec3 v_bc(_t->_vertices[c] - _t->_vertices[b]);
             Vec3 v_da(_t->_vertices[a] - _t->_vertices[d]);
@@ -86,4 +87,8 @@ void Delaunay_Voronoi::delaunay(QQueue<Edge> toProcess) {
         /*std::cout << "Edge : " << e.first << " " << e.second << " Faces : " << faceIds[0] << " " << faceIds[1] <<
         " Opposed Vertices : " << id_v0 << " " << id_v1 << std::endl;*/
     }
+}
+
+void Delaunay_Voronoi::updateVertices() {
+
 }

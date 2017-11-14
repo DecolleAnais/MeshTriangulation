@@ -18,6 +18,8 @@ public:
 
     void delaunay(QQueue<Edge> toProcess);
 
+    void updateVertices();
+
 protected:
     Triangulation* _t;
     QVector<unsigned int> _vertices;
