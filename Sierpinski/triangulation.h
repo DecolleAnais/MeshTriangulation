@@ -180,9 +180,14 @@ private:
 
     QQueue<Edge> getOpposedEdges(unsigned int idVertex);
 
-    bool isFaceContour(unsigned int i);
+    unsigned int straightLocalization(unsigned int f, Point3D& p);
 
-private:    
+    std::vector<unsigned int> displayVisibilityLocalization(unsigned int f, unsigned int p);
+
+    int visibilityLocalization(int f, unsigned int p);
+
+
+private:
     friend class FaceIterator;
     friend class VertexIterator;
     friend class FaceCirculator;

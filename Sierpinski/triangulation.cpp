@@ -27,9 +27,6 @@ Triangulation::Triangulation()
     loadTriangulation("/home/ad/Documents/M2/GAM/test_simple.pts");
     //loadTriangulation("/home/ad/Documents/M2/GAM/heart.pts");
 
-
-    //Delaunay_Voronoi delaunay_voronoi(this);
-    //delaunay_voronoi.delaunay();
 }
 
 Triangulation::Triangulation (const char* file) {
@@ -51,6 +48,7 @@ Triangulation::~Triangulation() {
 void Triangulation::draw(bool display_voronoi_vertices, bool display_voronoi_cells)
 {
     // dessine les triangles
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glBegin(GL_TRIANGLES);
          for(int i = 0;i < _faces.length();i++) {
              // dessine uniquement les faces visibles de la triangulation (n'utilisant pas le sommet fictif)
@@ -64,6 +62,27 @@ void Triangulation::draw(bool display_voronoi_vertices, bool display_voronoi_cel
              glVertex3f(_vertices[_faces[i].v(2)].x, _vertices[_faces[i].v(2)].y, _vertices[_faces[i].v(2)].z);
          }
     glEnd();
+
+    /*Point3D p(0.65, 0.1, 0.0);
+    //Point3D p(-0.7, 0.3, 0.0);
+    _vertices.push_back(p);
+    glPointSize(8.0);
+    glBegin(GL_POINTS);
+        glColor3f(1.0, 0.5, 0.0);
+        glVertex3f(p.x, p.y, p.z);
+    glEnd();
+
+    std::vector<unsigned int> t = displayVisibilityLocalization(4, _vertices.length()-1);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glBegin(GL_TRIANGLES);
+        glColor3f(0.0, 1.0,0.0);
+        for(unsigned int i : t) {
+             // dessine uniquement les faces visibles de la triangulation (n'utilisant pas le sommet fictif)
+             glVertex3f(_vertices[_faces[i].v(0)].x, _vertices[_faces[i].v(0)].y, _vertices[_faces[i].v(0)].z);
+             glVertex3f(_vertices[_faces[i].v(1)].x, _vertices[_faces[i].v(1)].y, _vertices[_faces[i].v(1)].z);
+             glVertex3f(_vertices[_faces[i].v(2)].x, _vertices[_faces[i].v(2)].y, _vertices[_faces[i].v(2)].z);
+        }
+    glEnd();*/
 
     if(_delaunay_voronoi != NULL) {
         _delaunay_voronoi->updateVertices();
@@ -303,8 +322,7 @@ void Triangulation::loadPTS(std::ifstream & ifs) {
         }else if(i > 3) {
             // si on a deja cree notre premier triangle
             // on ajoute le nouveau sommet par rapport aux triangles existants
-
-            int idFace = isInFace(i);
+            int idFace = visibilityLocalization(0, i);
             if(idFace != -1) {
                 // CAS 1 :  le nouveau sommet est dans un triangle existant
                 // separation du triangle en 3
@@ -409,20 +427,6 @@ void Triangulation::subdivideFace(unsigned int idFace, unsigned int o) {
     _faces[_faces.size() - 2].f(1)  = _faces.size() - 1;
     _faces[_faces.size() - 2].f(2)  = _faces[idFace].f(2);
 
-    // maj voisins du triangle original abc
-    /*unsigned int id = _faces[idFace].f(1);
-    _faces[id].f(1) = _faces.size() - 1;
-    id = _faces[idFace].f(2);
-    _faces[id].f(0) = _faces.size() - 2;*/
-
-    /* // tentative 2
-    unsigned int id = _faces[idFace].f(1);
-    unsigned int id2 = getIdInFace(id, _faces[idFace].v(1) );
-    _faces[id].f( (id2 - 1) %3 ) = _faces.size() - 1;
-    id = _faces[idFace].f(2);
-    id2 = getIdInFace(id, _faces[idFace].v(2) );
-    _faces[id].f( (id2 + 1)%3 ) = _faces.size() - 2;*/
-
     // triangle obc (ex triangle original)    
     _faces[idFace].f(1) = _faces.size() - 1;
     _faces[idFace].f(2) = _faces.size() - 2;
@@ -437,20 +441,6 @@ void Triangulation::subdivideFace(unsigned int idFace, unsigned int o) {
 
     updateNeighbour(idFaceOpposedB, Edge(this, a, c), idFaceAOC);
     updateNeighbour(idFaceOpposedC, Edge(this, a, b), idFaceABO);
-
-    /*
-    QMap< Edge, unsigned int> map;
-
-    Edge e(this, b, c);
-    updateNeighbours(map, e, idFaceOBC);
-    updateNeighbours(map, e, idFaceOpposedA);
-    e = Edge(this, c, a);
-    updateNeighbours(map, e, idFaceAOC);
-    updateNeighbours(map, e, idFaceOpposedB);
-    e = Edge(this, a, b);
-    updateNeighbours(map, e, idFaceABO);
-    updateNeighbours(map, e, idFaceOpposedC);*/
-
 }
 
 void Triangulation::addExternVertex(unsigned int i) {
@@ -530,7 +520,6 @@ void Triangulation::addExternVertex(unsigned int i) {
 }
 
 void Triangulation::flipEdge(unsigned int idFace, unsigned int idOpposedVertex) {
-    //std::cout << "flip face " << idFace << " sommet oppose " << idOpposedVertex << std::endl;
     int idInFace = getIdInFace(idFace, idOpposedVertex);
     if(idInFace != -1) {
         unsigned int idFace2 = _faces[idFace].f(idInFace);
@@ -627,7 +616,6 @@ QQueue<Edge> Triangulation::getOpposedEdges(unsigned int idVertex) {
             opposedEdges.enqueue(e);
         }
     }
-    //std::cout << "nb aretes a traiter " << opposedEdges.length() << std::endl;
     return opposedEdges;
 }
 
@@ -637,14 +625,67 @@ void Triangulation::updateNeighbour(unsigned int idFace, Edge edge, unsigned int
     _faces[idFace].f(idOpposedVertex) = idNeighbour;
 }
 
-bool Triangulation::isFaceContour(unsigned int i) {
-    unsigned int f0 = _faces[i].f(0);
-    unsigned int f1 = _faces[i].f(1);
-    unsigned int f2 = _faces[i].f(2);
-    if(!_faces[f0].isVisible() ||
-       !_faces[f1].isVisible() ||
-       !_faces[f2].isVisible() ) {
-        return true;
+unsigned int Triangulation::straightLocalization(unsigned int f, Point3D& p) {
+    // TODO
+    return 0;
+}
+
+std::vector<unsigned int> Triangulation::displayVisibilityLocalization(unsigned int f, unsigned int p) {
+    std::vector<unsigned int> walk;
+    unsigned int currentFace = f;
+    bool continueWalk = true;
+    // tant qu'on peut continuer la marche
+    // on se deplace de face en face vers le point
+    while(continueWalk) {
+        walk.push_back(currentFace);
+        // si on trouve une face  virtuelle,
+        // le point est a l'exterieur du maillage existant
+        // et est localise dans cette face virtuelle
+        if(!_faces[currentFace].isVisible()) {
+            break;
+        }
+        continueWalk = false;
+        for(unsigned int i = 0;i <= 2;i++) {
+            unsigned int a = _faces[currentFace].v(i);
+            unsigned int b = _faces[currentFace].v( (i+1)%3 );
+            unsigned int c = p;
+            // le point voit une arete de la face
+            if(isSensTrigo(a, c, b)) {
+                // deplacement sur la face suivante en se rapprochant du point
+                currentFace = _faces[currentFace].f( (i+2)%3 );
+                continueWalk = true;
+                break;
+            }
+        }
     }
-    return false;
+    return walk;
+}
+
+int Triangulation::visibilityLocalization(int f, unsigned int p) {
+    int currentFace = f;
+    bool continueWalk = true;
+    // tant qu'on peut continuer la marche
+    // on se deplace de face en face vers le point
+    while(continueWalk) {
+        // si on trouve une face  virtuelle,
+        // le point est a l'exterieur du maillage existant
+        // et est localise dans cette face virtuelle
+        if(!_faces[currentFace].isVisible()) {
+            return -1;
+        }
+        continueWalk = false;
+        for(unsigned int i = 0;i <= 2;i++) {
+            unsigned int a = _faces[currentFace].v(i);
+            unsigned int b = _faces[currentFace].v( (i+1)%3 );
+            unsigned int c = p;
+            // le point voit une arete de la face
+            if(isSensTrigo(a, c, b)) {
+                // deplacement sur la face suivante en se rapprochant du point
+                currentFace = _faces[currentFace].f( (i+2)%3 );
+                continueWalk = true;
+                break;
+            }
+        }
+    }
+    return currentFace;
 }
