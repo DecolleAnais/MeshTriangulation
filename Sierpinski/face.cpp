@@ -45,6 +45,10 @@ std::array<unsigned int, 3> Face::vertices() {
     return _vertices;
 }
 
+std::array<int, 3> Face::faces() {
+    return _faces;
+}
+
 unsigned int Face::getIdOpposedFace(const unsigned int v0, const unsigned int v1) {
     if(_vertices[0] != v0 && _vertices[0] != v1) {
         return 0;
@@ -92,4 +96,3 @@ bool Face::containsVertex(unsigned int v) {
         return true;
     return false;
 }
-

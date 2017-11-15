@@ -9,6 +9,7 @@
 
 Triangulation::Triangulation()
 {
+    _delaunay_voronoi = NULL;
     _nb_vertices = 0;
     _nb_faces = 0;
 
@@ -32,6 +33,7 @@ Triangulation::Triangulation()
 }
 
 Triangulation::Triangulation (const char* file) {
+    _delaunay_voronoi = NULL;
     _nb_vertices = 0;
     _nb_faces = 0;
     // creation sommet fictif infini
@@ -41,7 +43,12 @@ Triangulation::Triangulation (const char* file) {
     loadTriangulation(file);
 }
 
-void Triangulation::draw()
+Triangulation::~Triangulation() {
+    if(_delaunay_voronoi != NULL)
+        delete(_delaunay_voronoi);
+}
+
+void Triangulation::draw(bool display_voronoi_vertices, bool display_voronoi_cells)
 {
     // dessine les triangles
     glBegin(GL_TRIANGLES);
@@ -57,20 +64,15 @@ void Triangulation::draw()
              glVertex3f(_vertices[_faces[i].v(2)].x, _vertices[_faces[i].v(2)].y, _vertices[_faces[i].v(2)].z);
          }
     glEnd();
-    // dessine les centres des cercles circonscrits
-    glBegin(GL_POINTS);
-        glColor3f(1.0, 1.0, 1.0);
-        for(int i = 0;i < _faces.length();i++) {
-            if(_faces[i].isVisible()) {
-                Point3D a = _vertices[_faces[i].v(0)];
-                Point3D b = _vertices[_faces[i].v(1)];
-                Point3D c = _vertices[_faces[i].v(2)];
-                Circle circle;
-                circle.circumscribed(a, b, c);
-                glVertex3f(circle.center().x, circle.center().y, circle.center().z);
-            }
-        }
-    glEnd();
+
+    if(_delaunay_voronoi != NULL) {
+        _delaunay_voronoi->updateVertices();
+        if(display_voronoi_cells)
+            _delaunay_voronoi->drawVoronoi(1.0, 1.0, 1.0);
+        if(display_voronoi_vertices)
+            _delaunay_voronoi->drawVertices(0.0, 0.0, 1.0, 8.0);
+
+    }
 }
 
 
@@ -202,7 +204,6 @@ void Triangulation::loadOFF(std::ifstream & ifs) {
         id_v2 += 1;
 
         _faces[i] = Face(id_v0, id_v1, id_v2);
-        //createFace(id_v0, id_v1, id_v2);
 
         // association de la face aux sommets s'ils ne sont pas deja lies a une face
         for(unsigned int v_id : _faces[i].vertices()) {
@@ -260,7 +261,7 @@ void Triangulation::loadPTS(std::ifstream & ifs) {
 
     // lecture coords sommets
     for(unsigned int i = 1;i <= _nb_vertices;++i) {  // debut a 1 pour laisser le sommet fictif en position 0
-        std::cout << "Ajout sommet " << i <<std::endl;
+        //std::cout << "Ajout sommet " << i <<std::endl;
         ifs >> v_x;
         ifs >> v_y;
         ifs >> v_z;
@@ -313,8 +314,12 @@ void Triangulation::loadPTS(std::ifstream & ifs) {
                 addExternVertex(i);
             }
             // delaunay iteratif
-            Delaunay_Voronoi delaunay_voronoi(this);
-            delaunay_voronoi.delaunay(getOpposedEdges(i));
+            if(_delaunay_voronoi != NULL) {
+                delete(_delaunay_voronoi);
+                _delaunay_voronoi = NULL;
+            }
+            _delaunay_voronoi = new Delaunay_Voronoi(this);
+            _delaunay_voronoi->delaunay(getOpposedEdges(i));
 
 
         }
@@ -345,6 +350,15 @@ bool Triangulation::isSensTrigo(unsigned int a, unsigned int b, unsigned int c) 
     }else {
         return false;
     }
+}
+
+bool Triangulation::isSensTrigo(Point3D& a, Point3D& b, Point3D& c) {
+    // construction vecteurs ab et ac
+    Vec3 ab(a, b);
+    Vec3 ac(a, c);
+    // si la composante z du produit vectoriel ab, ac est negative
+    // alors le triangle est dans le sens trigo
+    return (ab.cross(ac).z > 0);
 }
 
 int Triangulation::isInFace(unsigned int d) {
@@ -416,11 +430,8 @@ void Triangulation::subdivideFace(unsigned int idFace, unsigned int o) {
     // utilisation de la fonction de voisinage
     unsigned int idFaceABO = _faces.size() - 2;
     unsigned int idFaceAOC = _faces.size() - 1;
-    unsigned int idFaceOBC = idFace;
     unsigned int idFaceOpposedB = _faces[idFaceAOC].f(1);
-    unsigned int idFaceOpposedA = _faces[idFaceOBC].f(0);
     unsigned int idFaceOpposedC = _faces[idFaceABO].f(2);
-    //unsigned int a = _faces[idFaceABO].v(0);
     unsigned int b = _faces[idFaceABO].v(1);
     unsigned int c = _faces[idFaceAOC].v(2);
 
@@ -519,7 +530,7 @@ void Triangulation::addExternVertex(unsigned int i) {
 }
 
 void Triangulation::flipEdge(unsigned int idFace, unsigned int idOpposedVertex) {
-    std::cout << "flip face " << idFace << " sommet oppose " << idOpposedVertex << std::endl;
+    //std::cout << "flip face " << idFace << " sommet oppose " << idOpposedVertex << std::endl;
     int idInFace = getIdInFace(idFace, idOpposedVertex);
     if(idInFace != -1) {
         unsigned int idFace2 = _faces[idFace].f(idInFace);
@@ -616,7 +627,7 @@ QQueue<Edge> Triangulation::getOpposedEdges(unsigned int idVertex) {
             opposedEdges.enqueue(e);
         }
     }
-    std::cout << "nb aretes a traiter " << opposedEdges.length() << std::endl;
+    //std::cout << "nb aretes a traiter " << opposedEdges.length() << std::endl;
     return opposedEdges;
 }
 
@@ -626,3 +637,14 @@ void Triangulation::updateNeighbour(unsigned int idFace, Edge edge, unsigned int
     _faces[idFace].f(idOpposedVertex) = idNeighbour;
 }
 
+bool Triangulation::isFaceContour(unsigned int i) {
+    unsigned int f0 = _faces[i].f(0);
+    unsigned int f1 = _faces[i].f(1);
+    unsigned int f2 = _faces[i].f(2);
+    if(!_faces[f0].isVisible() ||
+       !_faces[f1].isVisible() ||
+       !_faces[f2].isVisible() ) {
+        return true;
+    }
+    return false;
+}

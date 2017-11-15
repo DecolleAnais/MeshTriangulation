@@ -22,7 +22,9 @@ void GLDisplay::initializeGL()
 
     glColor3f(1.0, 1.0, 0.0);
 
-    display_mode = 0;
+    _display_mode = 1; glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    _display_voronoi_cells = false;
+    _display_voronoi_vertices = false;
 }
 
 void GLDisplay::paintGL()
@@ -34,7 +36,7 @@ void GLDisplay::paintGL()
     glRotatef(_angleX, 0.0f, 1.0f, 0.0f);
     glRotatef(_angleY, 1.0f, 0.0f, 0.0f);
 
-    triangulation.draw();
+    _triangulation.draw(_display_voronoi_vertices, _display_voronoi_cells);
 }
 
 void GLDisplay::resizeGL(int w, int h)
@@ -71,10 +73,20 @@ void GLDisplay::mousePressEvent(QMouseEvent *event)
 }
 
 void GLDisplay::changeDisplayMode() {
-    switch (display_mode) {
-    case 0 : display_mode = 1; glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); break;
-    case 1 : display_mode = 2; glPolygonMode(GL_FRONT_AND_BACK, GL_POINT); break;
-    case 2 : display_mode = 0; glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); break;
+    switch (_display_mode) {
+    case 0 : _display_mode = 1; glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); break;
+    case 1 : _display_mode = 2; glPolygonMode(GL_FRONT_AND_BACK, GL_POINT); break;
+    case 2 : _display_mode = 0; glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); break;
     }
+    updateGL();
+}
+
+void GLDisplay::setDisplayVoronoiCells(bool b) {
+    _display_voronoi_cells = b;
+    updateGL();
+}
+
+void GLDisplay::setDisplayVoronoiVertices(bool b) {
+    _display_voronoi_vertices = b;
     updateGL();
 }

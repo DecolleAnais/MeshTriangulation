@@ -8,7 +8,7 @@ class Circle
 {
 public:
     Circle();
-    Circle(Point3D center, float _radius);
+    Circle(Point3D center, double _radius);
     Circle(Point3D center, Vec3 _radius);
 
     Point3D center();
@@ -17,7 +17,7 @@ public:
 
 protected:
     Point3D _center;
-    float _radius;
+    double _radius;
 };
 
 #endif // CIRCLE_H

@@ -28,10 +28,13 @@ public:
     Triangulation();
     Triangulation (const char* file);
 
+    /*** Destructor ***/
+    ~Triangulation();
+
     /**
      * @brief draw the triangulation
      */
-    void draw();
+    void draw(bool display_voronoi_vertices, bool display_voronoi_cells);
 
     /*** Functions for iterators/circulators ***/
     /**
@@ -134,6 +137,8 @@ private:
      */
     bool isSensTrigo(unsigned int a, unsigned int b, unsigned int c);
 
+    bool isSensTrigo(Point3D& a, Point3D& b, Point3D& c);
+
     /**
      * @brief isInFace
      * @param d vertex id
@@ -175,6 +180,8 @@ private:
 
     QQueue<Edge> getOpposedEdges(unsigned int idVertex);
 
+    bool isFaceContour(unsigned int i);
+
 private:    
     friend class FaceIterator;
     friend class VertexIterator;
@@ -182,6 +189,8 @@ private:
     friend class VertexCirculator;
     friend class Edge;
     friend class Delaunay_Voronoi;
+
+    Delaunay_Voronoi* _delaunay_voronoi;
 
     /**
      * @brief _faces

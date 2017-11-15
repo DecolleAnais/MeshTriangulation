@@ -17,8 +17,15 @@ public:
 
 
 public slots:
-    void onButton();
     
+private slots:
+
+    void on_button_display_mode_released();
+
+    void on_checkbox_voronoi_cells_stateChanged(int arg1);
+
+    void on_checkbox_voronoi_vertices_stateChanged(int arg1);
+
 private:
     Ui::MainWindow *ui;
 };

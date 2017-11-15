@@ -36,6 +36,12 @@ public:
     std::array<unsigned int, 3> vertices();
 
     /**
+     * @brief faces
+     * @return an array of 3 neighbours faces
+     */
+    std::array<int, 3> faces();
+
+    /**
      * @brief getOpposedFaceId
      * @param v0 id of the first vertex of the edge
      * @param v1 id of the second vertex of the edge

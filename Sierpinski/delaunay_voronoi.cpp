@@ -1,10 +1,12 @@
 #include "delaunay_voronoi.h"
 #include "vec3.h"
+#include "circle.h"
 #include <iostream>
+
+Delaunay_Voronoi::Delaunay_Voronoi() { _t = NULL; }
 
 Delaunay_Voronoi::Delaunay_Voronoi(Triangulation* t) : _t(t)
 {
-    _vertices = QVector<unsigned int>(_t->_nb_faces);
 }
 
 void Delaunay_Voronoi::delaunay() {
@@ -34,7 +36,7 @@ void Delaunay_Voronoi::delaunay(QQueue<Edge> toProcess) {
         // recuperation des ids des sommets opposes a l'arete
         int a = _t->_faces[ f0 ].getIdOpposedVertex(e.first(), e.second());
         int d = _t->_faces[ f1 ].getIdOpposedVertex(e.first(), e.second());
-        std::cout << " a=" << a << " b=" << b <<" c=" << c << " d=" << d << std::endl;
+        //std::cout << " a=" << a << " b=" << b <<" c=" << c << " d=" << d << std::endl;
         // si ce n'est pas une forme convexe
         if( !e.isContour() &&
             ( ( !_t->isSensTrigo(a,d,c) && _t->isSensTrigo(a,d,b) ) ||
@@ -90,5 +92,75 @@ void Delaunay_Voronoi::delaunay(QQueue<Edge> toProcess) {
 }
 
 void Delaunay_Voronoi::updateVertices() {
+    _vertices = QVector<Point3D>();
+    for(int i = 0;i < _t->_faces.length();i++) {
+        Point3D a = _t->_vertices[_t->_faces[i].v(0)];
+        Point3D b = _t->_vertices[_t->_faces[i].v(1)];
+        Point3D c = _t->_vertices[_t->_faces[i].v(2)];
+        /*if(!_t->_faces[i].isVisible()) {
+            if(_t->_faces[i].v(0) == 0) {
+                a = b + (b-c)/2 +;
+            }else if(_t->_faces[i].v(1) == 0) {
+                b = a + (a-c)/2;
+            }else if(_t->_faces[i].v(2) == 0) {
+                c = a + (a-b)/2;
+            }
+        }*/
+        Circle circle;
+        circle.circumscribed(a, b, c);
+        _vertices.push_back(circle.center());
+    }
+}
 
+QVector<Point3D> Delaunay_Voronoi::vertices() {
+    return _vertices;
+}
+
+Point3D Delaunay_Voronoi::vertice(int i) {
+    return _vertices[i];
+}
+
+void Delaunay_Voronoi::drawVoronoi(GLfloat r, GLfloat g, GLfloat b) {
+    // dessine les cellules de Voronoi
+    glBegin(GL_LINES);
+        glColor3f(r, g, b);
+        for(int i = 0;i < _t->_faces.length();i++) {
+            if( _t->_faces[i].isVisible() ){
+                for(int j = 0;j <= 2;j++) {
+                    int f = _t->_faces[i].f(j);
+                    Point3D p1 = vertice(i);
+                    Point3D p2;
+                    if(!_t->_faces[f].isVisible()) {
+                        unsigned int v1 = _t->_faces[i].v( (j+1)%3 );
+                        unsigned int v2 = _t->_faces[i].v( (j+2)%3 );
+                        // milieu de l'arete contour
+                        Point3D m = _t->_vertices[v1] + (_t->_vertices[v2] - _t->_vertices[v1]) / 2;
+                        Point3D out = p1 + (m-p1)*100;
+                        if( _t->isSensTrigo(out, _t->_vertices[v2], _t->_vertices[v1]) )
+                            p2 = p1 + (m-p1)*100;
+                        else
+                            p2 = p1 - (m-p1)*100;
+                    }else {
+                        p2 = vertice(f);
+                    }
+                    glVertex3f(p1.x, p1.y, p1.z);
+                    glVertex3f(p2.x, p2.y, p2.z);
+                }
+            }
+        }
+    glEnd();
+}
+
+void Delaunay_Voronoi::drawVertices(GLfloat r, GLfloat g, GLfloat b, GLfloat size) {
+    // dessine les centres des cercles circonscrits
+    glPointSize(size);
+    glBegin(GL_POINTS);
+        glColor3f(r, g, b);
+        for(int i = 0;i < _t->_faces.length();i++) {
+            if(_t->_faces[i].isVisible()) {
+                Point3D p = vertice(i);
+                glVertex3f(p.x, p.y, p.z);
+            }
+        }
+    glEnd();
 }

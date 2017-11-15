@@ -19,14 +19,20 @@ public:
 
     void changeDisplayMode();
 
+    void setDisplayVoronoiCells(bool b);
+
+    void setDisplayVoronoiVertices(bool b);
+
 protected:
     virtual void mouseMoveEvent ( QMouseEvent * event );
     virtual void mousePressEvent ( QMouseEvent * event );
 
 private:
     void drawSierpinski();
-    Triangulation triangulation;
-    unsigned int display_mode;
+    Triangulation _triangulation;
+    unsigned int _display_mode;
+    bool _display_voronoi_vertices;
+    bool _display_voronoi_cells;
 
     float _angleX;
     float _angleY;
