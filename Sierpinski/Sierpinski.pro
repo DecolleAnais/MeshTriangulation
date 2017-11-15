@@ -24,7 +24,8 @@ SOURCES += main.cpp\
     triangulation.cpp \
     edge.cpp \
     delaunay_voronoi.cpp \
-    circle.cpp
+    circle.cpp \
+    crust.cpp
 
 HEADERS  += mainwindow.h \
     gldisplay.h \
@@ -36,6 +37,7 @@ HEADERS  += mainwindow.h \
     triangulation.h \
     edge.h \
     delaunay_voronoi.h \
-    circle.h
+    circle.h \
+    crust.h
 
 FORMS    += mainwindow.ui

@@ -119,6 +119,8 @@ private:
      */
     void loadPTS(std::ifstream & ifs);
 
+    void processPoint(unsigned int i, Point3D p);
+
     /**
      * @brief createFace
      * @param a vertex id
@@ -180,8 +182,6 @@ private:
 
     QQueue<Edge> getOpposedEdges(unsigned int idVertex);
 
-    unsigned int straightLocalization(unsigned int f, Point3D& p);
-
     std::vector<unsigned int> displayVisibilityLocalization(unsigned int f, unsigned int p);
 
     int visibilityLocalization(int f, unsigned int p);
@@ -194,6 +194,7 @@ private:
     friend class VertexCirculator;
     friend class Edge;
     friend class Delaunay_Voronoi;
+    friend class Crust;
 
     Delaunay_Voronoi* _delaunay_voronoi;
 

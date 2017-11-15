@@ -97,15 +97,6 @@ void Delaunay_Voronoi::updateVertices() {
         Point3D a = _t->_vertices[_t->_faces[i].v(0)];
         Point3D b = _t->_vertices[_t->_faces[i].v(1)];
         Point3D c = _t->_vertices[_t->_faces[i].v(2)];
-        /*if(!_t->_faces[i].isVisible()) {
-            if(_t->_faces[i].v(0) == 0) {
-                a = b + (b-c)/2 +;
-            }else if(_t->_faces[i].v(1) == 0) {
-                b = a + (a-c)/2;
-            }else if(_t->_faces[i].v(2) == 0) {
-                c = a + (a-b)/2;
-            }
-        }*/
         Circle circle;
         circle.circumscribed(a, b, c);
         _vertices.push_back(circle.center());
@@ -122,6 +113,7 @@ Point3D Delaunay_Voronoi::vertice(int i) {
 
 void Delaunay_Voronoi::drawVoronoi(GLfloat r, GLfloat g, GLfloat b) {
     // dessine les cellules de Voronoi
+    glLineWidth(1.0);
     glBegin(GL_LINES);
         glColor3f(r, g, b);
         for(int i = 0;i < _t->_faces.length();i++) {

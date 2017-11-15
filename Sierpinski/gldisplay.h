@@ -3,6 +3,7 @@
 
 #include <QGLWidget>
 #include <triangulation.h>
+#include <crust.h>
 #include <QMouseEvent>
 
 class GLDisplay : public QGLWidget
@@ -30,6 +31,7 @@ protected:
 private:
     void drawSierpinski();
     Triangulation _triangulation;
+    Crust _crust;
     unsigned int _display_mode;
     bool _display_voronoi_vertices;
     bool _display_voronoi_cells;

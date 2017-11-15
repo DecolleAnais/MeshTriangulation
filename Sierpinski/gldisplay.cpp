@@ -7,6 +7,7 @@ GLDisplay::GLDisplay(QWidget *parent) :
     _angleX(0.0f),
     _angleY(0.0f)
 {
+    _crust = Crust("");
 }
 
 void GLDisplay::initializeGL()
@@ -36,7 +37,8 @@ void GLDisplay::paintGL()
     glRotatef(_angleX, 0.0f, 1.0f, 0.0f);
     glRotatef(_angleY, 1.0f, 0.0f, 0.0f);
 
-    _triangulation.draw(_display_voronoi_vertices, _display_voronoi_cells);
+    //_triangulation.draw(_display_voronoi_vertices, _display_voronoi_cells);
+    _crust.draw();
 }
 
 void GLDisplay::resizeGL(int w, int h)

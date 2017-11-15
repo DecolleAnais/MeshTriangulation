@@ -24,8 +24,9 @@ Triangulation::Triangulation()
     //loadTriangulation("/home/ad/Documents/M2/GAM/cube.off");
     //loadTriangulation("/home/ad/Documents/M2/GAM/carre.pts");
     //loadTriangulation("/home/ad/Documents/M2/GAM/test.pts");
-    loadTriangulation("/home/ad/Documents/M2/GAM/test_simple.pts");
+    //loadTriangulation("/home/ad/Documents/M2/GAM/test_simple.pts");
     //loadTriangulation("/home/ad/Documents/M2/GAM/heart.pts");
+    loadTriangulation("/home/ad/Documents/M2/GAM/test_crust/line3.pts");
 
 }
 
@@ -63,7 +64,7 @@ void Triangulation::draw(bool display_voronoi_vertices, bool display_voronoi_cel
          }
     glEnd();
 
-    /*Point3D p(0.65, 0.1, 0.0);
+    Point3D p(0.65, 0.35, 0.0);
     //Point3D p(-0.7, 0.3, 0.0);
     _vertices.push_back(p);
     glPointSize(8.0);
@@ -72,7 +73,7 @@ void Triangulation::draw(bool display_voronoi_vertices, bool display_voronoi_cel
         glVertex3f(p.x, p.y, p.z);
     glEnd();
 
-    std::vector<unsigned int> t = displayVisibilityLocalization(4, _vertices.length()-1);
+    std::vector<unsigned int> t = displayVisibilityLocalization(0, _vertices.length()-1);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glBegin(GL_TRIANGLES);
         glColor3f(0.0, 1.0,0.0);
@@ -82,7 +83,7 @@ void Triangulation::draw(bool display_voronoi_vertices, bool display_voronoi_cel
              glVertex3f(_vertices[_faces[i].v(1)].x, _vertices[_faces[i].v(1)].y, _vertices[_faces[i].v(1)].z);
              glVertex3f(_vertices[_faces[i].v(2)].x, _vertices[_faces[i].v(2)].y, _vertices[_faces[i].v(2)].z);
         }
-    glEnd();*/
+    glEnd();
 
     if(_delaunay_voronoi != NULL) {
         _delaunay_voronoi->updateVertices();
@@ -280,69 +281,67 @@ void Triangulation::loadPTS(std::ifstream & ifs) {
 
     // lecture coords sommets
     for(unsigned int i = 1;i <= _nb_vertices;++i) {  // debut a 1 pour laisser le sommet fictif en position 0
-        //std::cout << "Ajout sommet " << i <<std::endl;
         ifs >> v_x;
         ifs >> v_y;
         ifs >> v_z;
-        _vertices[i] = Point3D(v_x, v_y, v_z);
-
-        // POINT INVISIBLE POUR LES BORDS
-
-        if(i == 3) {
-            // si on est au troisieme sommet, on cree le premier triangle
-            // en testant le sens trigo selon l'ordre des sommets
-            createFace(1, 2, 3);
-            // association de la face aux sommets
-            _vertices[1].faceId = 0;
-            _vertices[2].faceId = 0;
-            _vertices[3].faceId = 0;
-            // creation faces virtuelles
-            _faces.push_back( Face(_faces[0].v(0), 0, _faces[0].v(1)) );
-            _faces.push_back( Face(_faces[0].v(1), 0, _faces[0].v(2)) );
-            _faces.push_back( Face(_faces[0].v(2), 0, _faces[0].v(0)) );
-            // liaison du sommet virtuel à une face virtuelle
-            _vertices[0].faceId = 3;
-            // liaison des voisins
-            _faces[0].f(0) = 2;
-            _faces[0].f(1) = 3;
-            _faces[0].f(2) = 1;
-
-            _faces[1].f(0) = 2;
-            _faces[1].f(1) = 0;
-            _faces[1].f(2) = 3;
-
-            _faces[2].f(0) = 3;
-            _faces[2].f(1) = 0;
-            _faces[2].f(2) = 1;
-
-            _faces[3].f(0) = 1;
-            _faces[3].f(1) = 0;
-            _faces[3].f(2) = 2;
-
-        }else if(i > 3) {
-            // si on a deja cree notre premier triangle
-            // on ajoute le nouveau sommet par rapport aux triangles existants
-            int idFace = visibilityLocalization(0, i);
-            if(idFace != -1) {
-                // CAS 1 :  le nouveau sommet est dans un triangle existant
-                // separation du triangle en 3
-                subdivideFace(idFace, i);
-            }else {
-                // CAS 2 : le nouveau sommet est a l'exterieur des triangles existants
-                addExternVertex(i);
-            }
-            // delaunay iteratif
-            if(_delaunay_voronoi != NULL) {
-                delete(_delaunay_voronoi);
-                _delaunay_voronoi = NULL;
-            }
-            _delaunay_voronoi = new Delaunay_Voronoi(this);
-            _delaunay_voronoi->delaunay(getOpposedEdges(i));
-
-
-        }
+        processPoint( i, Point3D(v_x, v_y, v_z) );
     }
+}
 
+void Triangulation::processPoint(unsigned int i, Point3D p) {
+    _vertices[i] = p;
+
+    if(i == 3) {
+        // si on est au troisieme sommet, on cree le premier triangle
+        // en testant le sens trigo selon l'ordre des sommets
+        createFace(1, 2, 3);
+        // association de la face aux sommets
+        _vertices[1].faceId = 0;
+        _vertices[2].faceId = 0;
+        _vertices[3].faceId = 0;
+        // creation faces virtuelles
+        _faces.push_back( Face(_faces[0].v(0), 0, _faces[0].v(1)) );
+        _faces.push_back( Face(_faces[0].v(1), 0, _faces[0].v(2)) );
+        _faces.push_back( Face(_faces[0].v(2), 0, _faces[0].v(0)) );
+        // liaison du sommet virtuel à une face virtuelle
+        _vertices[0].faceId = 3;
+        // liaison des voisins
+        _faces[0].f(0) = 2;
+        _faces[0].f(1) = 3;
+        _faces[0].f(2) = 1;
+
+        _faces[1].f(0) = 2;
+        _faces[1].f(1) = 0;
+        _faces[1].f(2) = 3;
+
+        _faces[2].f(0) = 3;
+        _faces[2].f(1) = 0;
+        _faces[2].f(2) = 1;
+
+        _faces[3].f(0) = 1;
+        _faces[3].f(1) = 0;
+        _faces[3].f(2) = 2;
+
+    }else if(i > 3) {
+        // si on a deja cree notre premier triangle
+        // on ajoute le nouveau sommet par rapport aux triangles existants
+        int idFace = visibilityLocalization(0, i);
+        if(idFace != -1) {
+            // CAS 1 :  le nouveau sommet est dans un triangle existant
+            // separation du triangle en 3
+            subdivideFace(idFace, i);
+        }else {
+            // CAS 2 : le nouveau sommet est a l'exterieur des triangles existants
+            addExternVertex(i);
+        }
+        // delaunay iteratif
+        if(_delaunay_voronoi != NULL) {
+            delete(_delaunay_voronoi);
+            _delaunay_voronoi = NULL;
+        }
+        _delaunay_voronoi = new Delaunay_Voronoi(this);
+        _delaunay_voronoi->delaunay(getOpposedEdges(i));
+    }
 }
 
 void Triangulation::createFace(unsigned int a, unsigned int b, unsigned int c, bool visible) {
@@ -623,11 +622,6 @@ void Triangulation::updateNeighbour(unsigned int idFace, Edge edge, unsigned int
     unsigned int idOpposedVertex = _faces[idFace].getIdOpposedVertex(edge.first(), edge.second());
     idOpposedVertex = getIdInFace(idFace, idOpposedVertex);
     _faces[idFace].f(idOpposedVertex) = idNeighbour;
-}
-
-unsigned int Triangulation::straightLocalization(unsigned int f, Point3D& p) {
-    // TODO
-    return 0;
 }
 
 std::vector<unsigned int> Triangulation::displayVisibilityLocalization(unsigned int f, unsigned int p) {
