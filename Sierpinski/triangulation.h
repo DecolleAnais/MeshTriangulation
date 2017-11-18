@@ -12,6 +12,8 @@
 #include "edge.h"
 #include "delaunay_voronoi.h"
 #include <QQueue>
+#include <QFile>
+#include <QTextStream>
 
 class FaceIterator;
 class VertexIterator;
@@ -26,7 +28,7 @@ class Triangulation
 public:
     /*** Constructors ***/
     Triangulation();
-    Triangulation (const char* file);
+    Triangulation (QTextStream& file);
 
     /*** Destructor ***/
     ~Triangulation();
@@ -105,19 +107,21 @@ private:
      * @brief loadTriangulation
      * @param file .off or .pts to load
      */
-    void loadTriangulation(const char* file);
+    void loadTriangulation(QTextStream& file);
 
     /**
      * @brief loadOFF
-     * @param ifs stream to load (list of points and faces)
+     * @param QTextStream to load (list of points and faces)
      */
-    void loadOFF(std::ifstream & ifs);
+    void loadOFF(QTextStream& ts);
 
     /**
      * @brief loadPTS
-     * @param ifs stream to load (list of points)
+     * @param QTextStream to load (list of points)
      */
-    void loadPTS(std::ifstream & ifs);
+    void loadPTS(QTextStream& ts);
+
+    void savePTS();
 
     void processPoint(unsigned int i, Point3D p);
 

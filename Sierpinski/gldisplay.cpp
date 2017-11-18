@@ -1,4 +1,5 @@
 #include "gldisplay.h"
+#include <iostream>
 
 #define FRUSTUM_SIZE 1.0f
 
@@ -7,7 +8,7 @@ GLDisplay::GLDisplay(QWidget *parent) :
     _angleX(0.0f),
     _angleY(0.0f)
 {
-    _crust = Crust("");
+
 }
 
 void GLDisplay::initializeGL()
@@ -38,7 +39,9 @@ void GLDisplay::paintGL()
     glRotatef(_angleY, 1.0f, 0.0f, 0.0f);
 
     //_triangulation.draw(_display_voronoi_vertices, _display_voronoi_cells);
-    _crust.draw();
+    if(_crust.isInitialized()) {
+        _crust.draw(_display_voronoi_vertices, _display_voronoi_cells);
+    }
 }
 
 void GLDisplay::resizeGL(int w, int h)
@@ -90,5 +93,15 @@ void GLDisplay::setDisplayVoronoiCells(bool b) {
 
 void GLDisplay::setDisplayVoronoiVertices(bool b) {
     _display_voronoi_vertices = b;
+    updateGL();
+}
+
+void GLDisplay::loadFile(QTextStream& file) {
+    _crust = Crust(file, false);
+    updateGL();
+}
+
+void GLDisplay::applyCrust(QTextStream& file) {
+    _crust = Crust(file, true);
     updateGL();
 }

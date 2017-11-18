@@ -5,6 +5,7 @@
 #include <triangulation.h>
 #include <crust.h>
 #include <QMouseEvent>
+#include <QTextStream>
 
 class GLDisplay : public QGLWidget
 {
@@ -23,6 +24,10 @@ public:
     void setDisplayVoronoiCells(bool b);
 
     void setDisplayVoronoiVertices(bool b);
+
+    void loadFile(QTextStream& file);
+
+    void applyCrust(QTextStream& file);
 
 protected:
     virtual void mouseMoveEvent ( QMouseEvent * event );

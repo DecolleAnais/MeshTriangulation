@@ -16,21 +16,10 @@ Triangulation::Triangulation()
     // creation sommet fictif infini
     _vertices.resize(1);
     _vertices[0] = Point3D(0, 0, -1);
-
-    // chargement de la triangulation a partir d'un fichier
-
-    //loadTriangulation("/home/ad/Documents/M2/GAM/queen.off");
-    //loadTriangulation("/home/ad/Documents/M2/GAM/carre.off");
-    //loadTriangulation("/home/ad/Documents/M2/GAM/cube.off");
-    //loadTriangulation("/home/ad/Documents/M2/GAM/carre.pts");
-    //loadTriangulation("/home/ad/Documents/M2/GAM/test.pts");
-    //loadTriangulation("/home/ad/Documents/M2/GAM/test_simple.pts");
-    //loadTriangulation("/home/ad/Documents/M2/GAM/heart.pts");
-    loadTriangulation("/home/ad/Documents/M2/GAM/test_crust/line3.pts");
-
 }
 
-Triangulation::Triangulation (const char* file) {
+
+Triangulation::Triangulation(QTextStream& file) {
     _delaunay_voronoi = NULL;
     _nb_vertices = 0;
     _nb_faces = 0;
@@ -63,7 +52,7 @@ void Triangulation::draw(bool display_voronoi_vertices, bool display_voronoi_cel
              glVertex3f(_vertices[_faces[i].v(2)].x, _vertices[_faces[i].v(2)].y, _vertices[_faces[i].v(2)].z);
          }
     glEnd();
-
+    /*
     Point3D p(0.65, 0.35, 0.0);
     //Point3D p(-0.7, 0.3, 0.0);
     _vertices.push_back(p);
@@ -84,6 +73,7 @@ void Triangulation::draw(bool display_voronoi_vertices, bool display_voronoi_cel
              glVertex3f(_vertices[_faces[i].v(2)].x, _vertices[_faces[i].v(2)].y, _vertices[_faces[i].v(2)].z);
         }
     glEnd();
+    */
 
     if(_delaunay_voronoi != NULL) {
         _delaunay_voronoi->updateVertices();
@@ -161,29 +151,22 @@ void Triangulation::updateNeighbours(QMap<Edge, unsigned int> & map, Edge edge, 
 }
 
 
-void Triangulation::loadTriangulation(const char* file) {
-    // lecture fichier OFF
-    std::ifstream ifs;
-    ifs.open(file);
-    if(ifs.bad())
-      {std::cout<<"Impossible d'ouvrir le fichier "<<file<<" en lecture \n"; exit(1);}
+void Triangulation::loadTriangulation(QTextStream& file) {
     // on verifie les 3 premiers caracteres pour connaitre le type de fichier (OFF ou PTS)
     char TYPE[3];
-    ifs >> TYPE;
+    file >> TYPE;
 
     if(strcmp(TYPE, "OFF") == 0) {
         // fichier OFF (liste de points et de triangles)
-        loadOFF(ifs);
+        loadOFF(file);
     }else if(strcmp(TYPE, "PTS") == 0) {
         // fichier PTS (liste de points)
-        loadPTS(ifs);
+        loadPTS(file);
     }
-
-    ifs.close();
 }
 
 
-void Triangulation::loadOFF(std::ifstream & ifs) {
+void Triangulation::loadOFF(QTextStream& ts) {
     // map pour associer les ids des faces voisines (qui possedent le meme couple de sommets)
     QMap< Edge, unsigned int> map;
     Edge edge;
@@ -192,31 +175,31 @@ void Triangulation::loadOFF(std::ifstream & ifs) {
     unsigned int tmp, id_v0, id_v1, id_v2;
 
     // nb sommets
-    ifs >> _nb_vertices;
+    ts >> _nb_vertices;
     _vertices.resize(_nb_vertices+1); // +1 pour le sommet fictif
     // nb faces
-    ifs >> _nb_faces;
+    ts >> _nb_faces;
     _faces.resize(_nb_faces);
     // nb aretes
-    ifs >> tmp;
+    ts >> tmp;
 
     // lecture coords sommets
     for(unsigned int i = 1;i <= _nb_vertices;++i) { // debut a 1 pour laisser le sommet fictif en position 0
-        ifs >> v_x;
-        ifs >> v_y;
-        ifs >> v_z;
+        ts >> v_x;
+        ts >> v_y;
+        ts >> v_z;
         _vertices[i] = Point3D(v_x, v_y, v_z);
     }
 
     // lecture indices faces
     for(unsigned int i = 0;i < _nb_faces;++i) {
         // nb indices
-        ifs >> tmp;
+        ts >> tmp;
 
         // lecture indices
-        ifs >> id_v0;
-        ifs >> id_v1;
-        ifs >> id_v2;
+        ts >> id_v0;
+        ts >> id_v1;
+        ts >> id_v2;
 
         // +1 aux indices de sommets car le sommet fictif occupe la position 0
         id_v0 += 1;
@@ -254,14 +237,13 @@ void Triangulation::loadOFF(std::ifstream & ifs) {
             // pour chaque face en bordure, on cree une face avec le sommet fictif
             unsigned int a = _faces[i].v( (id+1)%3 );
             unsigned int b = _faces[i].v( (id+2)%3 );
-            // creation de la face fictive (v0 = sommet fictif, v1 = b, v2 = a, car l'arete ab est inversee dans la face voisine
-            // false pour ne pas incrementer _nb_faces qui represente le nb de faces reelles
-            createFace(a, 0, b, false);
+            // creation de la face fictive
+            _faces.push_back(Face(a, 0, b));
 
             // maj du voisin fictif
             unsigned int lastId = _faces.length()-1;
-            _faces[i].f(id) = lastId; // maj voisin pour la face reelle (id de la face fictive venant d'etre creee)
-            _faces[lastId].f(1) = i; // maj voisin pour la face fictive (f1 car c'est la face opposee au sommet fictif v1)
+            _faces[i].f(id) = lastId; // maj voisin pour la face reelle
+            _faces[lastId].f(1) = i; // maj voisin pour la face fictive
 
             // maj des voisins entre faces fictives
             edge = Edge(this, 0, a);
@@ -270,20 +252,19 @@ void Triangulation::loadOFF(std::ifstream & ifs) {
             updateNeighbours(map, edge, lastId);
         }
     }
-
 }
 
-void Triangulation::loadPTS(std::ifstream & ifs) {
+void Triangulation::loadPTS(QTextStream& ts) {
     // nb sommets
-    ifs >> _nb_vertices;
+    ts >> _nb_vertices;
     _vertices.resize(_nb_vertices + 1); // + 1 pour le sommet fictif
     double v_x, v_y, v_z;
 
     // lecture coords sommets
     for(unsigned int i = 1;i <= _nb_vertices;++i) {  // debut a 1 pour laisser le sommet fictif en position 0
-        ifs >> v_x;
-        ifs >> v_y;
-        ifs >> v_z;
+        ts >> v_x;
+        ts >> v_y;
+        ts >> v_z;
         processPoint( i, Point3D(v_x, v_y, v_z) );
     }
 }

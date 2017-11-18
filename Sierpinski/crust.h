@@ -2,15 +2,20 @@
 #define CRUST_H
 
 #include "triangulation.h"
+#include <QTextStream>
 
 class Crust
 {
 public:
     Crust();
     Crust(const char* file);
+    Crust(QTextStream& file, bool doApply);
     ~Crust();
 
-    void draw();
+    void initialize();
+    bool isInitialized();
+    bool apply();
+    void draw(bool display_voronoi_vertices, bool display_voronoi_cells);
 
 protected:
     Triangulation* _t;
