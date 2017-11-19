@@ -14,6 +14,7 @@
 #include <QQueue>
 #include <QFile>
 #include <QTextStream>
+#include <QPair>
 
 class FaceIterator;
 class VertexIterator;
@@ -21,6 +22,8 @@ class FaceCirculator;
 class VertexCirculator;
 class Edge;
 class Delaunay_Voronoi;
+
+typedef QPair<unsigned int, unsigned int> EdgeQPair;
 
 class Triangulation
 {
@@ -33,10 +36,16 @@ public:
     /*** Destructor ***/
     ~Triangulation();
 
+    bool isInitialized();
+
+    void lawson();
+
+    void savePTS(QTextStream& out);
+
     /**
      * @brief draw the triangulation
      */
-    void draw(bool display_voronoi_vertices, bool display_voronoi_cells);
+    void draw(bool display_voronoi_vertices, bool display_voronoi_cells, bool display_triangulation);
 
     /*** Functions for iterators/circulators ***/
     /**
@@ -99,7 +108,7 @@ private:
      * @param edge the edge to search or add in the map
      * @param idFace id of actual face
      */
-    void updateNeighbours(QMap<Edge, unsigned int> & map, Edge edge, unsigned int idFace);
+    void updateNeighbours(QMap<EdgeQPair, unsigned int> & map, EdgeQPair edge, unsigned int idFace);
 
     void updateNeighbour(unsigned int idFace, Edge edge, unsigned int idNeighbour);
 
@@ -120,8 +129,6 @@ private:
      * @param QTextStream to load (list of points)
      */
     void loadPTS(QTextStream& ts);
-
-    void savePTS();
 
     void processPoint(unsigned int i, Point3D p);
 

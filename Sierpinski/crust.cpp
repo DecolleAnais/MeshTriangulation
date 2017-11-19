@@ -6,31 +6,26 @@ Crust::Crust()
     _t = NULL;
 }
 
-Crust::~Crust() {
-    //if(_t != NULL)
-      //  delete(_t);
-}
+/*Crust::~Crust() {
+    if(_t != NULL)
+        delete(_t);
+}*/
 
-Crust::Crust(QTextStream& file, bool doApply) {
-    // triangulation de delaunay avec les points originaux
-    _t = new Triangulation(file);
-    _nb_base_vertices = _t->_nb_vertices;
-    if(doApply)
-        apply();
-}
-
-void initialize() {
-
+void Crust::initialize() {
+    _t = NULL;
+    _nb_base_vertices = 0;
 }
 
 bool Crust::isInitialized() {
     return _t != NULL;
 }
 
-bool Crust::apply() {
+bool Crust::apply(Triangulation* t) {
+    _t = t;
+    _nb_base_vertices = _t->_nb_vertices;
     // recuperation des sommets de voronoi
     if(_t->_delaunay_voronoi != NULL) {
-        _t->_delaunay_voronoi->updateVertices();
+        _t->_delaunay_voronoi->updateVertices(_t);
         QVector<Point3D> voronoi_vertices = _t->_delaunay_voronoi->vertices();
         // ajout des sommets de voronoi a la triangulation
         unsigned int start =  _t->_nb_vertices + 1;
@@ -72,16 +67,15 @@ bool Crust::apply() {
             }
         }
     }
+    if(_edges.empty())
+        return false;
     return true;
 }
 
-void Crust::draw(bool display_voronoi_vertices, bool display_voronoi_cells) {
-    // dessine la triangulation
-    _t->draw(display_voronoi_vertices, display_voronoi_cells);
-
+void Crust::draw() {
     if(!_edges.empty()) {
         // dessine les aretes conservees
-        glLineWidth(1.0);
+        glLineWidth(8.0);
         glColor3f(1.0, 0.0, 1.0);
         glBegin(GL_LINES);
             for(Edge e : _edges) {
@@ -91,11 +85,5 @@ void Crust::draw(bool display_voronoi_vertices, bool display_voronoi_cells) {
                 glVertex3f(p2.x, p2.y, p2.z);
             }
         glEnd();
-        // dessine les cellules et les sommets de voronoi si souhaite
-        _t->_delaunay_voronoi->updateVertices();
-        if(display_voronoi_cells)
-            _t->_delaunay_voronoi->drawVoronoi(1.0, 1.0, 1.0);
-        if(display_voronoi_vertices)
-            _t->_delaunay_voronoi->drawVertices(0.0, 0.0, 1.0, 8.0);
     }
 }

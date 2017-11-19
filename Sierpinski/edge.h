@@ -13,11 +13,7 @@ public:
 
     Edge(Triangulation* t, unsigned int a, unsigned int b);
 
-    //bool operator==(const Edge& e) const;
-    //bool equals(const Edge& e) const;
     bool operator<(const Edge& e) const;
-    //uint qHash(const Edge& e);
-    //uint qHash(const Edge &e, uint seed);
 
     unsigned int first() const;
 
@@ -48,12 +44,5 @@ inline bool operator==(const Edge& e1, const Edge& e2) {
     return false;
 }
 
-inline uint qHash(const Edge& e) {
-    return e.first() + 3*e.second() + 5*e.getFaceId(0) + 10*e.getFaceId(1);
-}
-
-inline uint qHash(const Edge& e, uint seed) {
-    return qHash(e) * seed;
-}
 
 #endif // EDGE_H

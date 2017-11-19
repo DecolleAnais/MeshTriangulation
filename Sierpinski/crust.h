@@ -8,14 +8,13 @@ class Crust
 {
 public:
     Crust();
-    Crust(const char* file);
-    Crust(QTextStream& file, bool doApply);
-    ~Crust();
+    Crust(Triangulation* t);
+    //~Crust();
 
     void initialize();
     bool isInitialized();
-    bool apply();
-    void draw(bool display_voronoi_vertices, bool display_voronoi_cells);
+    bool apply(Triangulation* t);
+    void draw();
 
 protected:
     Triangulation* _t;

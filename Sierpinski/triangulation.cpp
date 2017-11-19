@@ -31,52 +31,44 @@ Triangulation::Triangulation(QTextStream& file) {
 }
 
 Triangulation::~Triangulation() {
-    if(_delaunay_voronoi != NULL)
+    if(_delaunay_voronoi != NULL) {
         delete(_delaunay_voronoi);
+        _delaunay_voronoi = NULL;
+    }
 }
 
-void Triangulation::draw(bool display_voronoi_vertices, bool display_voronoi_cells)
+bool Triangulation::isInitialized() {
+    return _nb_vertices > 0;
+}
+
+void Triangulation::lawson() {
+    if(_delaunay_voronoi != NULL)
+        _delaunay_voronoi->delaunay();
+}
+
+void Triangulation::draw(bool display_voronoi_vertices, bool display_voronoi_cells, bool display_triangulation)
 {
     // dessine les triangles
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glBegin(GL_TRIANGLES);
-         for(int i = 0;i < _faces.length();i++) {
-             // dessine uniquement les faces visibles de la triangulation (n'utilisant pas le sommet fictif)
-             if(_faces[i].isVisible()) {
-                 glColor3f(1.0, 1.0, 0.0);
-             }else {
-                 glColor3f(1.0, 0.0, 0.0);
+    if(display_triangulation) {
+        glLineWidth(1.0);
+        glBegin(GL_TRIANGLES);
+             for(int i = 0;i < _faces.length();i++) {
+                 // dessine uniquement les faces visibles de la triangulation (n'utilisant pas le sommet fictif)
+                 if(_faces[i].isVisible()) {
+                     glColor3f(1.0, 1.0, 0.0);
+                 }else {
+                     glColor3f(1.0, 0.0, 0.0);
+                 }
+                 glVertex3f(_vertices[_faces[i].v(0)].x, _vertices[_faces[i].v(0)].y, _vertices[_faces[i].v(0)].z);
+                 glVertex3f(_vertices[_faces[i].v(1)].x, _vertices[_faces[i].v(1)].y, _vertices[_faces[i].v(1)].z);
+                 glVertex3f(_vertices[_faces[i].v(2)].x, _vertices[_faces[i].v(2)].y, _vertices[_faces[i].v(2)].z);
              }
-             glVertex3f(_vertices[_faces[i].v(0)].x, _vertices[_faces[i].v(0)].y, _vertices[_faces[i].v(0)].z);
-             glVertex3f(_vertices[_faces[i].v(1)].x, _vertices[_faces[i].v(1)].y, _vertices[_faces[i].v(1)].z);
-             glVertex3f(_vertices[_faces[i].v(2)].x, _vertices[_faces[i].v(2)].y, _vertices[_faces[i].v(2)].z);
-         }
-    glEnd();
-    /*
-    Point3D p(0.65, 0.35, 0.0);
-    //Point3D p(-0.7, 0.3, 0.0);
-    _vertices.push_back(p);
-    glPointSize(8.0);
-    glBegin(GL_POINTS);
-        glColor3f(1.0, 0.5, 0.0);
-        glVertex3f(p.x, p.y, p.z);
-    glEnd();
-
-    std::vector<unsigned int> t = displayVisibilityLocalization(0, _vertices.length()-1);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    glBegin(GL_TRIANGLES);
-        glColor3f(0.0, 1.0,0.0);
-        for(unsigned int i : t) {
-             // dessine uniquement les faces visibles de la triangulation (n'utilisant pas le sommet fictif)
-             glVertex3f(_vertices[_faces[i].v(0)].x, _vertices[_faces[i].v(0)].y, _vertices[_faces[i].v(0)].z);
-             glVertex3f(_vertices[_faces[i].v(1)].x, _vertices[_faces[i].v(1)].y, _vertices[_faces[i].v(1)].z);
-             glVertex3f(_vertices[_faces[i].v(2)].x, _vertices[_faces[i].v(2)].y, _vertices[_faces[i].v(2)].z);
-        }
-    glEnd();
-    */
+        glEnd();
+    }
 
     if(_delaunay_voronoi != NULL) {
-        _delaunay_voronoi->updateVertices();
+        _delaunay_voronoi = new Delaunay_Voronoi(this);
+        _delaunay_voronoi->updateVertices(this);
         if(display_voronoi_cells)
             _delaunay_voronoi->drawVoronoi(1.0, 1.0, 1.0);
         if(display_voronoi_vertices)
@@ -124,7 +116,7 @@ unsigned int Triangulation::getId(const Face& f) {
     return _faces.indexOf(f);
 }
 
-void Triangulation::updateNeighbours(QMap<Edge, unsigned int> & map, Edge edge, unsigned int idFace) {
+void Triangulation::updateNeighbours(QMap<EdgeQPair, unsigned int> & map, EdgeQPair edge, unsigned int idFace) {
 
     // on verifie si l'arete est dans la map
     // si non -> on l'ajoute et on lui associe l'id de la face
@@ -136,12 +128,12 @@ void Triangulation::updateNeighbours(QMap<Edge, unsigned int> & map, Edge edge, 
         unsigned int neighbour = map.value(edge);
 
         // face opposee de la face actuelle
-        unsigned int idOpposedFace = _faces[idFace].getIdOpposedFace(edge.first(), edge.second());
+        unsigned int idOpposedFace = _faces[idFace].getIdOpposedFace(edge.first, edge.second);
         // maj du voisin pour la face actuelle, on connait le sommet oppose
         _faces[idFace].f(idOpposedFace) = neighbour;
 
         // face opposee du voisin
-        idOpposedFace = _faces[neighbour].getIdOpposedFace(edge.first(), edge.second());
+        idOpposedFace = _faces[neighbour].getIdOpposedFace(edge.first, edge.second);
         // maj du voisin
         _faces[neighbour].f(idOpposedFace) = idFace;
 
@@ -168,8 +160,8 @@ void Triangulation::loadTriangulation(QTextStream& file) {
 
 void Triangulation::loadOFF(QTextStream& ts) {
     // map pour associer les ids des faces voisines (qui possedent le meme couple de sommets)
-    QMap< Edge, unsigned int> map;
-    Edge edge;
+    QMap< EdgeQPair, unsigned int> map;
+    EdgeQPair edge;
 
     double v_x, v_y, v_z;
     unsigned int tmp, id_v0, id_v1, id_v2;
@@ -192,7 +184,9 @@ void Triangulation::loadOFF(QTextStream& ts) {
     }
 
     // lecture indices faces
-    for(unsigned int i = 0;i < _nb_faces;++i) {
+    for(unsigned int i = 0;i < _nb_faces;i++) {
+        _vertices[0].faceId = _nb_faces; // face id pour le sommet virtuel
+
         // nb indices
         ts >> tmp;
 
@@ -220,17 +214,19 @@ void Triangulation::loadOFF(QTextStream& ts) {
         // 3 couple d'indices de sommets
         // l'indice min en premier
         // fonction d'association des faces updateNeighbours()
-        edge = Edge(this, id_v0, id_v1);
+        edge.first = qMin(id_v0, id_v1);
+        edge.second = qMax(id_v0, id_v1);
         updateNeighbours(map, edge, i);
-        edge = Edge(this, id_v1, id_v2);
+        edge.first = qMin(id_v1, id_v2);
+        edge.second = qMax(id_v1, id_v2);
         updateNeighbours(map, edge, i);
-        edge = Edge(this, id_v0, id_v2);
+        edge.first = qMin(id_v0, id_v2);
+        edge.second = qMax(id_v0, id_v2);
         updateNeighbours(map, edge, i);
     }
 
     // connexion des bordures avec le sommet ficitf
     for(unsigned int i = 0;i < _nb_faces;++i) {
-        //Face* face = &_faces[i];
         std::vector<unsigned int> idBorderFaces = _faces[i].getIdBorderFaces();
 
         for(unsigned int id : idBorderFaces) {
@@ -246,12 +242,15 @@ void Triangulation::loadOFF(QTextStream& ts) {
             _faces[lastId].f(1) = i; // maj voisin pour la face fictive
 
             // maj des voisins entre faces fictives
-            edge = Edge(this, 0, a);
+            edge.first = 0;
+            edge.second = a;
             updateNeighbours(map, edge, lastId);
-            edge = Edge(this, 0, b);
+            edge.first = 0;
+            edge.second = b;
             updateNeighbours(map, edge, lastId);
         }
     }
+    _delaunay_voronoi = new Delaunay_Voronoi(this);
 }
 
 void Triangulation::loadPTS(QTextStream& ts) {
@@ -266,6 +265,21 @@ void Triangulation::loadPTS(QTextStream& ts) {
         ts >> v_y;
         ts >> v_z;
         processPoint( i, Point3D(v_x, v_y, v_z) );
+    }
+}
+
+void Triangulation::savePTS(QTextStream& out) {
+    out << "OFF\n";
+    out << _nb_vertices << " " << _nb_faces << " 0\n";
+    for(unsigned int i = 1;i <= _nb_vertices;i++) {
+        Point3D p = _vertices[i];
+        out << p.x << " " << p.y << " " << p.z << "\n";
+    }
+    for(Face f : _faces) {
+        if(f.isVisible()) {
+            // -1 sur les indices de sommets pour ignorer le sommet virtuel
+            out << "3 " << f.v(0)-1 << " " << f.v(1)-1 << " " << f.v(2)-1 << "\n";
+        }
     }
 }
 
@@ -315,6 +329,7 @@ void Triangulation::processPoint(unsigned int i, Point3D p) {
             // CAS 2 : le nouveau sommet est a l'exterieur des triangles existants
             addExternVertex(i);
         }
+
         // delaunay iteratif
         if(_delaunay_voronoi != NULL) {
             delete(_delaunay_voronoi);
@@ -460,6 +475,7 @@ void Triangulation::addExternVertex(unsigned int i) {
     for(unsigned int id : near_faces) {
         // remplace le sommet infini par le nouveau point dans la face virtuelle
         _faces[id].v(1) = i;
+        _nb_faces++;
     }
     // creer 2 nouvelles faces vituelles, une pour chaque extremite des faces a traiter
     unsigned int first_face = near_faces[0];
@@ -474,7 +490,6 @@ void Triangulation::addExternVertex(unsigned int i) {
     fa.f(1) = first_face;
     fa.f(2) = _faces.size() + 1;
     _faces.push_back(fa);
-    _nb_faces++;
     // maj faceId sommet virtuel
     _vertices[0].faceId = _faces.size() - 1;
 

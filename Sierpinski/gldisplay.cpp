@@ -8,7 +8,6 @@ GLDisplay::GLDisplay(QWidget *parent) :
     _angleX(0.0f),
     _angleY(0.0f)
 {
-
 }
 
 void GLDisplay::initializeGL()
@@ -27,6 +26,7 @@ void GLDisplay::initializeGL()
     _display_mode = 1; glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     _display_voronoi_cells = false;
     _display_voronoi_vertices = false;
+    _display_triangulation = true;
 }
 
 void GLDisplay::paintGL()
@@ -38,9 +38,13 @@ void GLDisplay::paintGL()
     glRotatef(_angleX, 0.0f, 1.0f, 0.0f);
     glRotatef(_angleY, 1.0f, 0.0f, 0.0f);
 
-    //_triangulation.draw(_display_voronoi_vertices, _display_voronoi_cells);
+    if(_triangulation.isInitialized()) {
+        _triangulation.draw(_display_voronoi_vertices, _display_voronoi_cells, _display_triangulation);
+        //_triangulation.draw(true, true, _display_triangulation);
+    }
+
     if(_crust.isInitialized()) {
-        _crust.draw(_display_voronoi_vertices, _display_voronoi_cells);
+        _crust.draw();
     }
 }
 
@@ -96,12 +100,37 @@ void GLDisplay::setDisplayVoronoiVertices(bool b) {
     updateGL();
 }
 
-void GLDisplay::loadFile(QTextStream& file) {
-    _crust = Crust(file, false);
+void GLDisplay::setDisplayTriangulation(bool b) {
+    _display_triangulation = b;
     updateGL();
 }
 
-void GLDisplay::applyCrust(QTextStream& file) {
-    _crust = Crust(file, true);
+void GLDisplay::loadFile(QTextStream& file) {
+    _crust.initialize();
+    //_crust = Crust();
+    //_triangulation = Triangulation();
+    _triangulation = Triangulation(file);
+    //_triangulation._delaunay_voronoi->_t = &_triangulation;
+    updateGL();
+}
+
+void GLDisplay::applyCrust() {
+    _crust.apply(&_triangulation);
+    updateGL();
+}
+
+void GLDisplay::saveAs(QTextStream& out) {
+    _triangulation.savePTS(out);
+}
+
+void GLDisplay::reset() {
+    _triangulation = Triangulation();
+    //_crust = Crust();
+    _crust.initialize();
+    updateGL();
+}
+
+void GLDisplay::lawson() {
+    _triangulation.lawson();
     updateGL();
 }

@@ -18,6 +18,13 @@
     <item row="0" column="2">
      <layout class="QVBoxLayout" name="verticalLayout">
       <item>
+       <widget class="QPushButton" name="button_reset">
+        <property name="text">
+         <string>Reset</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QPushButton" name="button_display_mode">
         <property name="maximumSize">
          <size>
@@ -31,9 +38,23 @@
        </widget>
       </item>
       <item>
+       <widget class="QPushButton" name="button_lawson">
+        <property name="text">
+         <string>Launch Lawson</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QPushButton" name="button_crust">
         <property name="text">
          <string>Launch Crust</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="checkbox_triangulation">
+        <property name="text">
+         <string>Triangulation</string>
         </property>
        </widget>
       </item>

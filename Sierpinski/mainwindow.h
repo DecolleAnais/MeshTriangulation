@@ -28,14 +28,21 @@ private slots:
 
     void on_checkbox_voronoi_vertices_stateChanged();
 
-    void on_actionOpen_triggered();
+    void on_action_open_triggered();
+
+    void on_action_save_as_triggered();
 
     void on_button_crust_released();
+
+    void on_button_reset_released();
+
+    void on_button_lawson_released();
+
+    void on_checkbox_triangulation_stateChanged();
 
 private:
     Ui::MainWindow *ui;
     QString currentFile;
-    QString currentStream;
 };
 
 #endif // MAINWINDOW_H

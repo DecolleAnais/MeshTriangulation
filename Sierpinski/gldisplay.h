@@ -25,9 +25,17 @@ public:
 
     void setDisplayVoronoiVertices(bool b);
 
+    void setDisplayTriangulation(bool b);
+
     void loadFile(QTextStream& file);
 
-    void applyCrust(QTextStream& file);
+    void applyCrust();
+
+    void saveAs(QTextStream& out);
+
+    void reset();
+
+    void lawson();
 
 protected:
     virtual void mouseMoveEvent ( QMouseEvent * event );
@@ -35,11 +43,12 @@ protected:
 
 private:
     void drawSierpinski();
-    Triangulation _triangulation;
     Crust _crust;
+    Triangulation _triangulation;
     unsigned int _display_mode;
     bool _display_voronoi_vertices;
     bool _display_voronoi_cells;
+    bool _display_triangulation;
 
     float _angleX;
     float _angleY;

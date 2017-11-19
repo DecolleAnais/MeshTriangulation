@@ -20,7 +20,7 @@ public:
 
     void delaunay(QQueue<Edge> toProcess);
 
-    void updateVertices();
+    void updateVertices(Triangulation* t);
 
     QVector<Point3D> vertices();
 

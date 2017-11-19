@@ -78,11 +78,11 @@ int Face::getIdOpposedVertex(const unsigned int a, const unsigned int b) {
 std::vector<unsigned int> Face::getIdBorderFaces() {
     std::vector<unsigned int> idBorderFaces;
     if(_faces[0] == -1)
-        idBorderFaces.emplace_back(0);
+        idBorderFaces.push_back(0);
     if(_faces[1] == -1)
-        idBorderFaces.emplace_back(1);
+        idBorderFaces.push_back(1);
     if(_faces[2] == -1)
-        idBorderFaces.emplace_back(2);
+        idBorderFaces.push_back(2);
     return idBorderFaces;
 }
 
