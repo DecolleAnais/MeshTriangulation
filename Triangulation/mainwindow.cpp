@@ -82,6 +82,7 @@ void MainWindow::on_button_crust_released()
 {
     ui->widget->applyCrust();
     ui->button_crust->setEnabled(false);
+    ui->actionSave_As->setEnabled(false);
 }
 
 void MainWindow::on_action_save_as_triggered() {

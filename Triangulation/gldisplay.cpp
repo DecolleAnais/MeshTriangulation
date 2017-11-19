@@ -40,7 +40,6 @@ void GLDisplay::paintGL()
 
     if(_triangulation.isInitialized()) {
         _triangulation.draw(_display_voronoi_vertices, _display_voronoi_cells, _display_triangulation);
-        //_triangulation.draw(true, true, _display_triangulation);
     }
 
     if(_crust.isInitialized()) {
@@ -107,10 +106,7 @@ void GLDisplay::setDisplayTriangulation(bool b) {
 
 void GLDisplay::loadFile(QTextStream& file) {
     _crust.initialize();
-    //_crust = Crust();
-    //_triangulation = Triangulation();
     _triangulation = Triangulation(file);
-    //_triangulation._delaunay_voronoi->_t = &_triangulation;
     updateGL();
 }
 
@@ -125,7 +121,6 @@ void GLDisplay::saveAs(QTextStream& out) {
 
 void GLDisplay::reset() {
     _triangulation = Triangulation();
-    //_crust = Crust();
     _crust.initialize();
     updateGL();
 }
